@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,7 +35,7 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
   const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: clientesApi.list });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData, any, FormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData, any, FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: initialData ? {
       cabanaId: initialData.cabanaId,
@@ -54,23 +53,13 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
       estadoPago: 'pendiente',
       desayunoIncluido: false,
       numHuespedes: 2,
-      precioPorNoche: 0,
     },
   });
 
-  const watchedCabanaId = watch('cabanaId');
   const watchedEntrada = watch('fechaEntrada');
   const watchedSalida = watch('fechaSalida');
   const watchedPrecio = watch('precioPorNoche');
 
-  const selectedCabana = cabanas.find((c) => c.id === watchedCabanaId);
-
-  // When cabin changes and it's a NEW reservation (no initialData), pre-fill the price
-  useEffect(() => {
-    if (!initialData && selectedCabana) {
-      setValue('precioPorNoche', selectedCabana.precioPorNoche);
-    }
-  }, [watchedCabanaId, selectedCabana, initialData, setValue]);
 
   const noches = watchedEntrada && watchedSalida && watchedEntrada < watchedSalida
     ? calcNights(watchedEntrada, watchedSalida)

@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, requireSuperAdmin } from '../middleware/auth';
 
@@ -7,6 +9,35 @@ const prisma = new PrismaClient();
 
 // All routes require authentication + SUPER_ADMIN role
 router.use(authenticate, requireSuperAdmin);
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+}
+
+async function uniqueSlug(base: string): Promise<string> {
+  let slug = slugify(base);
+  let attempt = slug;
+  let i = 1;
+  while (await prisma.organization.findUnique({ where: { slug: attempt } })) {
+    attempt = `${slug}-${i++}`;
+  }
+  return attempt;
+}
+
+const createOrgSchema = z.object({
+  name: z.string().min(2, 'Nombre mínimo 2 caracteres'),
+  adminName: z.string().min(2, 'Nombre del admin mínimo 2 caracteres'),
+  adminEmail: z.string().email('Email inválido'),
+  adminPassword: z.string().min(8, 'Contraseña mínimo 8 caracteres'),
+  plan: z.enum(['free', 'pro', 'enterprise']).optional().default('free'),
+});
 
 // GET /api/super/stats — platform-wide statistics
 router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
@@ -82,6 +113,66 @@ router.get('/organizations', async (_req: Request, res: Response): Promise<void>
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/super/organizations — create a new organization with admin user
+router.post('/organizations', async (req: Request, res: Response): Promise<void> => {
+  const parsed = createOrgSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message });
+    return;
+  }
+
+  const { name, adminName, adminEmail, adminPassword, plan } = parsed.data;
+
+  try {
+    const slug = await uniqueSlug(name);
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+
+    const org = await prisma.organization.create({
+      data: {
+        name,
+        slug,
+        plan,
+        config: { create: { nombreComplejo: name } },
+        users: {
+          create: {
+            name: adminName,
+            email: adminEmail,
+            password: hashedPassword,
+            role: 'ADMIN',
+          },
+        },
+      },
+      include: { users: true },
+    });
+
+    const user = org.users[0];
+
+    res.status(201).json({
+      organization: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        plan: org.plan,
+        createdAt: org.createdAt,
+      },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err: unknown) {
+    const e = err as { code?: string };
+    if (e.code === 'P2002') {
+      res.status(409).json({ error: 'Ya existe una cuenta con ese email en esa organización' });
+    } else {
+      console.error(err);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
   }
 });
 

@@ -10,6 +10,9 @@ import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import ActivateAccount from './pages/ActivateAccount';
 import Usuarios from './pages/admin/Usuarios';
 import SuperAdmin from './pages/super/SuperAdmin';
 
@@ -56,8 +59,11 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login"    element={<GuestOnly><Login /></GuestOnly>} />
-      <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
+      <Route path="/login"            element={<GuestOnly><Login /></GuestOnly>} />
+      <Route path="/register"         element={<GuestOnly><Register /></GuestOnly>} />
+      <Route path="/forgot-password"  element={<ForgotPassword />} />
+      <Route path="/reset-password"   element={<ResetPassword />} />
+      <Route path="/activate"         element={<ActivateAccount />} />
 
       {/* Protected routes */}
       <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>

@@ -73,6 +73,12 @@ export const authApi = {
   organizations: () => api.get<{ organizations: OrgWithRole[] }>('/auth/organizations'),
   switchOrg: (organizationId: string) =>
     api.post<AuthResponse>('/auth/switch-org', { organizationId }),
+  forgotPassword: (email: string) =>
+    api.post<{ message: string }>('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    api.post<{ message: string }>('/auth/reset-password', { token, password }),
+  activate: (token: string, password: string) =>
+    api.post<{ message: string }>('/auth/activate', { token, password }),
 };
 
 // ── Cabañas ────────────────────────────────────────────────────────────────
@@ -195,6 +201,7 @@ export const usersApi = {
   update: (id: string, data: Partial<AppUser & { password: string }>) =>
     api.put<AppUser>(`/users/${id}`, data),
   delete: (id: string)             => api.delete<{ message: string }>(`/users/${id}`),
+  sendActivation: (id: string)     => api.post<{ message: string }>(`/users/${id}/send-activation`, {}),
 };
 
 // ── Config ─────────────────────────────────────────────────────────────────
@@ -238,7 +245,17 @@ export interface SuperStats {
   orgs: OrgStats[];
 }
 
+export interface CreateOrgData {
+  name: string;
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
+  plan?: 'free' | 'pro' | 'enterprise';
+}
+
 export const superApi = {
-  stats:         () => api.get<SuperStats>('/super/stats'),
-  organizations: () => api.get<OrgStats[]>('/super/organizations'),
+  stats:              () => api.get<SuperStats>('/super/stats'),
+  organizations:      () => api.get<OrgStats[]>('/super/organizations'),
+  createOrganization: (data: CreateOrgData) =>
+    api.post<{ organization: OrgStats; user: AppUser }>('/super/organizations', data),
 };

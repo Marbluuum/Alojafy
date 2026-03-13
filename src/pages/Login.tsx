@@ -125,6 +125,11 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && <p className="form-error text-red-400">{errors.password.message}</p>}
+              <div className="mt-1.5 text-right">
+                <Link to="/forgot-password" className="text-xs text-surface-500 hover:text-primary-400">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             </div>
 
             {showSlug && (

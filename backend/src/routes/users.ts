@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, requireAdmin } from '../middleware/auth';
+import { sendActivationEmail } from '../utils/email';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -139,6 +144,30 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: 'Error al actualizar usuario' });
+  }
+});
+
+// POST /api/users/:id/send-activation
+router.post('/:id/send-activation', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
+      include: { organization: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const token = jwt.sign({ id: user.id, purpose: 'activate' }, JWT_SECRET, { expiresIn: '72h' });
+    const activationLink = `${FRONTEND_URL}/activate?token=${token}`;
+    await sendActivationEmail(user.email, user.name, activationLink, user.organization.name);
+
+    res.json({ message: 'Email de activación enviado' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al enviar email de activación' });
   }
 });
 

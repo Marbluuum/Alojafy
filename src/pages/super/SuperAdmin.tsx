@@ -1,9 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, CalendarDays, TrendingUp, Crown, CreditCard, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Building2, Users, CalendarDays, TrendingUp, Crown, CreditCard, Loader2, Plus } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { superApi } from '../../lib/api';
 import type { OrgStats } from '../../lib/api';
 import TopBar from '../../components/layout/TopBar';
+import Modal from '../../components/ui/Modal';
 import { formatCurrency } from '../../utils/helpers';
+
+const createOrgSchema = z.object({
+  name: z.string().min(2, 'Mínimo 2 caracteres'),
+  adminName: z.string().min(2, 'Mínimo 2 caracteres'),
+  adminEmail: z.string().email('Email inválido'),
+  adminPassword: z.string().min(8, 'Mínimo 8 caracteres'),
+  plan: z.enum(['free', 'pro', 'enterprise']).default('free'),
+});
+type CreateOrgForm = z.infer<typeof createOrgSchema>;
 
 const PLAN_BADGE: Record<string, string> = {
   free:       'bg-surface-100 text-surface-500',
@@ -21,10 +35,31 @@ function PlanBadge({ plan }: { plan: string }) {
 }
 
 export default function SuperAdmin() {
+  const queryClient = useQueryClient();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['super-stats'],
     queryFn: superApi.stats,
   });
+
+  const [createOrgOpen, setCreateOrgOpen] = useState(false);
+  const [createOrgError, setCreateOrgError] = useState('');
+
+  const createOrgForm = useForm<CreateOrgForm>({
+    resolver: zodResolver(createOrgSchema),
+    defaultValues: { plan: 'free' },
+  });
+
+  async function handleCreateOrg(data: CreateOrgForm) {
+    setCreateOrgError('');
+    try {
+      await superApi.createOrganization(data);
+      setCreateOrgOpen(false);
+      createOrgForm.reset({ plan: 'free' });
+      queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+    } catch (e: unknown) {
+      setCreateOrgError(e instanceof Error ? e.message : 'Error al crear la organización');
+    }
+  }
 
   const summaryCards = [
     {
@@ -63,6 +98,14 @@ export default function SuperAdmin() {
       <TopBar
         title="Panel Super Admin"
         subtitle="Vista global de la plataforma Alojafy"
+        actions={
+          <button
+            onClick={() => { createOrgForm.reset({ plan: 'free' }); setCreateOrgError(''); setCreateOrgOpen(true); }}
+            className="btn-primary btn-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />Nueva Organización
+          </button>
+        }
       />
 
       <div className="p-6 flex-1 space-y-8">
@@ -191,6 +234,61 @@ export default function SuperAdmin() {
           </>
         )}
       </div>
+
+      {/* Modal: Nueva Organización */}
+      <Modal isOpen={createOrgOpen} onClose={() => setCreateOrgOpen(false)} title="Nueva Organización" size="sm">
+        <form onSubmit={createOrgForm.handleSubmit(handleCreateOrg)} className="space-y-4">
+          {createOrgError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded px-3 py-2">
+              {createOrgError}
+            </div>
+          )}
+          <div>
+            <label className="label">Nombre de la organización</label>
+            <input {...createOrgForm.register('name')} className="input" placeholder="Mi Complejo" />
+            {createOrgForm.formState.errors.name && (
+              <p className="form-error">{createOrgForm.formState.errors.name.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="label">Nombre del administrador</label>
+            <input {...createOrgForm.register('adminName')} className="input" placeholder="Juan Pérez" />
+            {createOrgForm.formState.errors.adminName && (
+              <p className="form-error">{createOrgForm.formState.errors.adminName.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="label">Email del administrador</label>
+            <input {...createOrgForm.register('adminEmail')} type="email" className="input" placeholder="admin@empresa.com" />
+            {createOrgForm.formState.errors.adminEmail && (
+              <p className="form-error">{createOrgForm.formState.errors.adminEmail.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="label">Contraseña del administrador</label>
+            <input {...createOrgForm.register('adminPassword')} type="password" className="input" placeholder="Mínimo 8 caracteres" />
+            {createOrgForm.formState.errors.adminPassword && (
+              <p className="form-error">{createOrgForm.formState.errors.adminPassword.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="label">Plan</label>
+            <select {...createOrgForm.register('plan')} className="input">
+              <option value="free">Free</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setCreateOrgOpen(false)} className="btn-secondary btn-sm">
+              Cancelar
+            </button>
+            <button type="submit" disabled={createOrgForm.formState.isSubmitting} className="btn-primary btn-sm">
+              {createOrgForm.formState.isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Crear organización'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

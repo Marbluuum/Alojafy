@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Shield, User, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Shield, User, ToggleLeft, ToggleRight, Loader2, Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,6 +34,7 @@ export default function Usuarios() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AppUser | null>(null);
+  const [activationToast, setActivationToast] = useState('');
 
   const createForm = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
@@ -85,6 +86,17 @@ export default function Usuarios() {
     load();
   }
 
+  async function handleSendActivation(u: AppUser) {
+    try {
+      await usersApi.sendActivation(u.id);
+      setActivationToast('Email de activación enviado');
+      setTimeout(() => setActivationToast(''), 3000);
+    } catch {
+      setActivationToast('Error al enviar el email');
+      setTimeout(() => setActivationToast(''), 3000);
+    }
+  }
+
   function openEdit(u: AppUser) {
     setEditUser(u);
     editForm.reset({ name: u.name, role: u.role as 'ADMIN' | 'USER', password: '' });
@@ -92,6 +104,11 @@ export default function Usuarios() {
 
   return (
     <div className="flex flex-col flex-1">
+      {activationToast && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-600 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
+          {activationToast}
+        </div>
+      )}
       <TopBar
         title="Usuarios"
         subtitle="Gestioná los miembros de tu equipo y sus permisos"
@@ -169,6 +186,13 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleSendActivation(u)}
+                            className="btn-icon btn-ghost btn-sm text-surface-400 hover:text-emerald-600"
+                            title="Enviar activación"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => openEdit(u)}
                             className="btn-icon btn-ghost btn-sm text-surface-400 hover:text-primary-600"
