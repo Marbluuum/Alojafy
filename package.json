@@ -25,6 +25,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.577.0",
+    "nodemailer": "^8.0.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.2",
@@ -49,8 +50,8 @@
     "globals": "^17.4.0",
     "postcss": "^8.5.8",
     "prisma": "^5.22.0",
-    "tsx": "^4.19.2",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.19.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.0"
