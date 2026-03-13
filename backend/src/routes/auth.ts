@@ -1,9 +1,14 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { signToken } from '../utils/jwt';
 import { authenticate } from '../middleware/auth';
+import { sendPasswordResetEmail, sendActivationEmail } from '../utils/email';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -282,6 +287,86 @@ router.post('/switch-org', authenticate, async (req: Request, res: Response): Pr
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    res.status(200).json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña' });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findFirst({ where: { email } });
+    if (user) {
+      const token = jwt.sign({ id: user.id, purpose: 'password-reset' }, JWT_SECRET, { expiresIn: '1h' });
+      const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+      await sendPasswordResetEmail(user.email, user.name, resetLink);
+    }
+    // Always return 200 to avoid revealing if email exists
+    res.status(200).json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña' });
+  } catch (err) {
+    console.error(err);
+    res.status(200).json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  const { token, password } = req.body;
+  if (!token || !password || typeof token !== 'string' || typeof password !== 'string') {
+    res.status(400).json({ error: 'Token y contraseña son requeridos' });
+    return;
+  }
+  if (password.length < 8) {
+    res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { id: string; purpose: string };
+    if (payload.purpose !== 'password-reset') {
+      res.status(400).json({ error: 'Token inválido' });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(password, 12);
+    await prisma.user.update({ where: { id: payload.id }, data: { password: hashed } });
+    res.json({ message: 'Contraseña restablecida correctamente' });
+  } catch {
+    res.status(400).json({ error: 'Token inválido o expirado' });
+  }
+});
+
+// POST /api/auth/activate
+router.post('/activate', async (req: Request, res: Response): Promise<void> => {
+  const { token, password } = req.body;
+  if (!token || !password || typeof token !== 'string' || typeof password !== 'string') {
+    res.status(400).json({ error: 'Token y contraseña son requeridos' });
+    return;
+  }
+  if (password.length < 8) {
+    res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { id: string; purpose: string };
+    if (payload.purpose !== 'activate') {
+      res.status(400).json({ error: 'Token inválido' });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(password, 12);
+    await prisma.user.update({
+      where: { id: payload.id },
+      data: { password: hashed, isActive: true },
+    });
+    res.json({ message: 'Cuenta activada correctamente' });
+  } catch {
+    res.status(400).json({ error: 'Token inválido o expirado' });
   }
 });
 
