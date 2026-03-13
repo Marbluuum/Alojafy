@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  cabanas  Cabana[]
+  clientes Cliente[]
+  reservas Reserva[]
+  config   Config?
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String
+  password       String
+  name           String
+  role           String   @default("USER")
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([email, organizationId])
+  @@index([organizationId])
+}
+
+model Cabana {
+  id             String   @id @default(cuid())
+  nombre         String
+  descripcion    String
+  capacidad      Int
+  precioPorNoche Float
+  estado         String   @default("disponible")
+  habitaciones   Int      @default(1)
+  banos          Int      @default(1)
+  superficieM2   Float    @default(50)
+  ubicacion      String
+  amenidades     String   @default("[]")
+  imagenes       String   @default("[]")
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reservas     Reserva[]
+
+  @@index([organizationId])
+}
+
+model Cliente {
+  id              String   @id @default(cuid())
+  nombre          String
+  apellido        String
+  email           String
+  telefono        String
+  dni             String
+  fechaNacimiento String?
+  direccion       String?
+  ciudad          String?
+  pais            String   @default("Argentina")
+  notas           String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reservas     Reserva[]
+
+  @@index([organizationId])
+}
+
+model Reserva {
+  id               String   @id @default(cuid())
+  cabanaId         String
+  clienteId        String
+  fechaEntrada     String
+  fechaSalida      String
+  numHuespedes     Int
+  precioPorNoche   Float
+  precioTotal      Float
+  estado           String   @default("pendiente")
+  estadoPago       String   @default("pendiente")
+  desayunoIncluido Boolean  @default(false)
+  notas            String?
+  organizationId   String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cabana       Cabana   @relation(fields: [cabanaId], references: [id])
+  cliente      Cliente  @relation(fields: [clienteId], references: [id])
+
+  @@index([organizationId])
+  @@index([cabanaId])
+  @@index([clienteId])
+}
+
+model Config {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  nombreComplejo String?
+  moneda         String   @default("ARS")
+  emailContacto  String?
+  telefono       String?
+  direccion      String?
+  checkInTime    String   @default("14:00")
+  checkOutTime   String   @default("10:00")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Users, Mail, Phone, MapPin, Hash, BedDouble } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import type { Client } from '../types';
+import { Plus, Edit2, Trash2, Users, Mail, Phone, MapPin, Hash, BedDouble, Loader2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { clientesApi, Cliente } from '../lib/api';
 import { formatDisplayDate } from '../utils/helpers';
 import TopBar from '../components/layout/TopBar';
 import Modal from '../components/ui/Modal';
@@ -11,10 +11,15 @@ import SearchInput from '../components/ui/SearchInput';
 import ClienteForm from '../components/forms/ClienteForm';
 
 export default function Clientes() {
-  const { clientes, reservas, addCliente, updateCliente, deleteCliente } = useStore();
+  const qc = useQueryClient();
+  const { data: clientes = [], isLoading } = useQuery({
+    queryKey: ['clientes'],
+    queryFn: clientesApi.list,
+  });
+
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editCliente, setEditCliente] = useState<Client | null>(null);
+  const [editCliente, setEditCliente] = useState<Cliente | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = clientes.filter((c) => {
@@ -23,116 +28,133 @@ export default function Clientes() {
   });
 
   const handleOpenAdd = () => { setEditCliente(null); setModalOpen(true); };
-  const handleOpenEdit = (c: Client) => { setEditCliente(c); setModalOpen(true); };
+  const handleOpenEdit = (c: Cliente) => { setEditCliente(c); setModalOpen(true); };
+
+  const handleSubmit = async (data: Omit<Cliente, 'id' | 'createdAt' | 'organizationId' | 'cantidadReservas'>) => {
+    if (editCliente) {
+      await clientesApi.update(editCliente.id, data);
+    } else {
+      await clientesApi.create(data);
+    }
+    qc.invalidateQueries({ queryKey: ['clientes'] });
+    setModalOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await clientesApi.delete(deleteId);
+    qc.invalidateQueries({ queryKey: ['clientes'] });
+    setDeleteId(null);
+  };
 
   return (
-    <div>
-      <TopBar title="Clientes" subtitle={`${clientes.length} clientes registrados`} />
-      <div className="p-6">
-        <div className="flex flex-wrap gap-3 mb-6">
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar cliente..." />
-          <div className="ml-auto">
-            <button onClick={handleOpenAdd} className="btn-primary">
-              <Plus size={16} />
-              Nuevo Cliente
-            </button>
-          </div>
+    <div className="flex flex-col flex-1">
+      <TopBar
+        title="Clientes"
+        subtitle={`${clientes.length} clientes registrados`}
+        actions={
+          <button onClick={handleOpenAdd} className="btn-primary btn-sm">
+            <Plus className="w-3.5 h-3.5" />Nuevo cliente
+          </button>
+        }
+      />
+
+      <div className="p-6 flex-1">
+        <div className="flex flex-wrap items-center gap-2.5 mb-5">
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nombre, email o DNI..." />
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="w-6 h-6 animate-spin text-surface-400" />
+          </div>
+        ) : filtered.length === 0 ? (
           <EmptyState
             icon={Users}
             title="No hay clientes"
-            description="Registra tu primer cliente para comenzar a gestionar reservas"
-            action={{ label: 'Agregar Cliente', onClick: handleOpenAdd }}
+            description="Registrá tu primer cliente para empezar a gestionar reservas"
+            action={{ label: 'Agregar cliente', onClick: handleOpenAdd }}
           />
         ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full">
+          <div className="table-container">
+            <table className="table">
               <thead>
                 <tr>
-                  <th className="table-header">Cliente</th>
-                  <th className="table-header hidden md:table-cell">Contacto</th>
-                  <th className="table-header hidden lg:table-cell">DNI / País</th>
-                  <th className="table-header hidden sm:table-cell">Reservas</th>
-                  <th className="table-header hidden lg:table-cell">Registrado</th>
-                  <th className="table-header">Acciones</th>
+                  <th>Cliente</th>
+                  <th className="hidden md:table-cell">Contacto</th>
+                  <th className="hidden lg:table-cell">DNI / País</th>
+                  <th className="hidden sm:table-cell">Reservas</th>
+                  <th className="hidden lg:table-cell">Registrado</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => {
-                  const clientReservas = reservas.filter((r) => r.clienteId === c.id);
-                  return (
-                    <tr key={c.id} className="hover:bg-dark-50 transition-colors">
-                      <td className="table-cell">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-bold text-primary-700">
-                              {c.nombre.charAt(0)}{c.apellido.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-dark-800">{c.nombre} {c.apellido}</p>
-                            <p className="text-xs text-dark-400 md:hidden">{c.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="table-cell hidden md:table-cell">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-sm text-dark-600">
-                            <Mail size={13} className="text-dark-400" />
-                            <span className="truncate max-w-[180px]">{c.email}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-sm text-dark-600">
-                            <Phone size={13} className="text-dark-400" />
-                            {c.telefono}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="table-cell hidden lg:table-cell">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-sm text-dark-600">
-                            <Hash size={13} className="text-dark-400" />
-                            {c.dni}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-sm text-dark-600">
-                            <MapPin size={13} className="text-dark-400" />
-                            {c.ciudad ? `${c.ciudad}, ` : ''}{c.pais}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="table-cell hidden sm:table-cell">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 badge-blue">
-                            <BedDouble size={11} />
-                            {clientReservas.length}
+                {filtered.map((c) => (
+                  <tr key={c.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-primary-700">
+                            {c.nombre.charAt(0)}{c.apellido.charAt(0)}
                           </span>
                         </div>
-                      </td>
-                      <td className="table-cell hidden lg:table-cell text-dark-400 text-xs">
-                        {formatDisplayDate(c.createdAt)}
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenEdit(c)}
-                            className="p-1.5 rounded-lg text-dark-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(c.id)}
-                            className="p-1.5 rounded-lg text-dark-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <div>
+                          <p className="font-medium text-surface-900">{c.nombre} {c.apellido}</p>
+                          <p className="text-xs text-surface-400 md:hidden">{c.email}</p>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </td>
+                    <td className="hidden md:table-cell">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-sm text-surface-600">
+                          <Mail className="w-3 h-3 text-surface-400" />
+                          <span className="truncate max-w-[180px]">{c.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-surface-600">
+                          <Phone className="w-3 h-3 text-surface-400" />
+                          {c.telefono}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden lg:table-cell">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-sm text-surface-600">
+                          <Hash className="w-3 h-3 text-surface-400" />
+                          {c.dni}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-surface-600">
+                          <MapPin className="w-3 h-3 text-surface-400" />
+                          {c.ciudad ? `${c.ciudad}, ` : ''}{c.pais}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell">
+                      <span className="badge-blue">
+                        <BedDouble className="w-3 h-3" />
+                        {c.cantidadReservas ?? 0}
+                      </span>
+                    </td>
+                    <td className="hidden lg:table-cell text-surface-400 text-xs">
+                      {formatDisplayDate(c.createdAt)}
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEdit(c)}
+                          className="btn-icon btn-ghost btn-sm text-surface-400 hover:text-primary-600"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(c.id)}
+                          className="btn-icon btn-ghost btn-sm text-surface-400 hover:text-red-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -146,12 +168,8 @@ export default function Clientes() {
         size="md"
       >
         <ClienteForm
-          initialData={editCliente}
-          onSubmit={(data) => {
-            if (editCliente) updateCliente(editCliente.id, data);
-            else addCliente(data);
-            setModalOpen(false);
-          }}
+          initialData={editCliente as never}
+          onSubmit={handleSubmit as never}
           onCancel={() => setModalOpen(false)}
         />
       </Modal>
@@ -159,9 +177,9 @@ export default function Clientes() {
       <ConfirmDialog
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
-        onConfirm={() => deleteId && deleteCliente(deleteId)}
+        onConfirm={handleDelete}
         title="Eliminar Cliente"
-        description="¿Estás seguro de que deseas eliminar este cliente? Sus reservas no serán eliminadas."
+        description="¿Estás seguro de que querés eliminar este cliente?"
         confirmLabel="Eliminar"
         danger
       />

@@ -120,7 +120,7 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
         <div className="flex flex-col justify-end">
           <label className="flex items-center gap-2 cursor-pointer">
             <input {...register('desayunoIncluido')} type="checkbox" className="w-4 h-4 rounded text-primary-600" />
-            <span className="text-sm font-medium text-dark-700">Desayuno incluido</span>
+            <span className="text-sm font-medium text-surface-700">Desayuno incluido</span>
           </label>
         </div>
 
@@ -153,18 +153,18 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
       {/* Price Preview */}
       {noches > 0 && selectedCabana && (
         <div className="bg-primary-50 rounded-xl p-4 border border-primary-200">
-          <div className="flex justify-between text-sm text-dark-600 mb-1">
+          <div className="flex justify-between text-sm text-surface-600 mb-1">
             <span>{formatCurrency(selectedCabana.precioPorNoche)} × {noches} noche{noches !== 1 ? 's' : ''}</span>
             <span>{formatCurrency(precioTotal)}</span>
           </div>
-          <div className="flex justify-between font-bold text-dark-800">
+          <div className="flex justify-between font-bold text-surface-800">
             <span>Total estimado</span>
             <span className="text-primary-700">{formatCurrency(precioTotal)}</span>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-dark-100">
+      <div className="flex gap-3 pt-2 border-t border-surface-100">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">Cancelar</button>
         <button type="submit" className="btn-primary flex-1">
           {initialData ? 'Guardar Cambios' : 'Crear Reserva'}

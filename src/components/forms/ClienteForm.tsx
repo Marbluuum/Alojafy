@@ -97,7 +97,7 @@ export default function ClienteForm({ initialData, onSubmit, onCancel }: Props) 
         </div>
       </div>
 
-      <div className="flex gap-3 pt-2 border-t border-dark-100">
+      <div className="flex gap-3 pt-2 border-t border-surface-100">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">Cancelar</button>
         <button type="submit" className="btn-primary flex-1">
           {initialData ? 'Guardar Cambios' : 'Registrar Cliente'}

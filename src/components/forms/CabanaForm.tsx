@@ -147,7 +147,7 @@ export default function CabanaForm({ initialData, onSubmit, onCancel }: Props) {
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                 amenidades.includes(a)
                   ? 'bg-primary-600 text-white border-primary-600'
-                  : 'bg-white text-dark-600 border-dark-200 hover:border-primary-400'
+                  : 'bg-white text-surface-600 border-surface-200 hover:border-primary-400'
               }`}
             >
               {a}
@@ -181,7 +181,7 @@ export default function CabanaForm({ initialData, onSubmit, onCancel }: Props) {
         )}
       </div>
 
-      <div className="flex gap-3 pt-2 border-t border-dark-100">
+      <div className="flex gap-3 pt-2 border-t border-surface-100">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">
           Cancelar
         </button>

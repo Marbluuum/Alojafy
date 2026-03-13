@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useQuery } from '@tanstack/react-query';
+import { cabanasApi, reservasApi, clientesApi } from '../lib/api';
 import { getMonthDays, MESES, DIAS_SEMANA_SHORT, formatDisplayDate, statusReservaBadge } from '../utils/helpers';
 import { parseISO, format, isWithinInterval, getDay, startOfMonth, getDate } from 'date-fns';
 import TopBar from '../components/layout/TopBar';
-import type { Booking } from '../types';
 
 export default function Calendario() {
-  const { cabanas, reservas, clientes } = useStore();
+  const { data: cabanas = [] } = useQuery({ queryKey: ['cabanas'], queryFn: cabanasApi.list });
+  const { data: reservas = [] } = useQuery({ queryKey: ['reservas'], queryFn: () => reservasApi.list() });
+  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: clientesApi.list });
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -46,7 +48,7 @@ export default function Calendario() {
     });
   };
 
-  const getBookingPosition = (booking: Booking, day: string) => {
+  const getBookingPosition = (booking: { fechaEntrada: string; fechaSalida: string }, day: string) => {
     const isStart = booking.fechaEntrada === day;
     const isEnd = booking.fechaSalida === day;
     const isMiddle = !isStart && !isEnd;
@@ -65,13 +67,13 @@ export default function Calendario() {
           {/* Controls */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <div className="flex items-center gap-2 card px-3 py-2">
-              <button onClick={prevMonth} className="p-1 rounded hover:bg-dark-100 text-dark-500 transition-colors">
+              <button onClick={prevMonth} className="p-1 rounded hover:bg-surface-100 text-surface-500 transition-colors">
                 <ChevronLeft size={16} />
               </button>
-              <span className="font-semibold text-dark-700 min-w-[140px] text-center">
+              <span className="font-semibold text-surface-700 min-w-[140px] text-center">
                 {MESES[month]} {year}
               </span>
-              <button onClick={nextMonth} className="p-1 rounded hover:bg-dark-100 text-dark-500 transition-colors">
+              <button onClick={nextMonth} className="p-1 rounded hover:bg-surface-100 text-surface-500 transition-colors">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -103,16 +105,16 @@ export default function Calendario() {
 
           {/* Legend */}
           <div className="flex items-center gap-4 mb-4 flex-wrap">
-            <div className="flex items-center gap-2 text-xs text-dark-500">
+            <div className="flex items-center gap-2 text-xs text-surface-500">
               <div className="w-4 h-4 rounded bg-primary-500" />
               Confirmada
             </div>
-            <div className="flex items-center gap-2 text-xs text-dark-500">
-              <div className="w-4 h-4 rounded bg-accent-400" />
+            <div className="flex items-center gap-2 text-xs text-surface-500">
+              <div className="w-4 h-4 rounded bg-amber-400" />
               Pendiente
             </div>
-            <div className="flex items-center gap-2 text-xs text-dark-500">
-              <div className="w-4 h-4 rounded bg-dark-300" />
+            <div className="flex items-center gap-2 text-xs text-surface-500">
+              <div className="w-4 h-4 rounded bg-surface-300" />
               Completada
             </div>
           </div>
@@ -121,8 +123,8 @@ export default function Calendario() {
           <div className="card overflow-x-auto">
             <div className="min-w-max">
               {/* Header - Days */}
-              <div className="flex border-b border-dark-200 bg-dark-50">
-                <div className="w-44 flex-shrink-0 px-4 py-3 text-xs font-semibold text-dark-500 border-r border-dark-200">
+              <div className="flex border-b border-surface-200 bg-surface-50">
+                <div className="w-44 flex-shrink-0 px-4 py-3 text-xs font-semibold text-surface-500 border-r border-surface-200">
                   CABAÑA
                 </div>
                 {days.map((day) => {
@@ -133,12 +135,12 @@ export default function Calendario() {
                   return (
                     <div
                       key={day}
-                      className={`w-8 flex-shrink-0 text-center py-3 border-r border-dark-100 ${isWeekend ? 'bg-dark-100' : ''} ${isToday ? 'bg-primary-100' : ''}`}
+                      className={`w-8 flex-shrink-0 text-center py-3 border-r border-surface-100 ${isWeekend ? 'bg-surface-100' : ''} ${isToday ? 'bg-primary-100' : ''}`}
                     >
-                      <div className={`text-[10px] font-bold ${isToday ? 'text-primary-600' : 'text-dark-400'}`}>
+                      <div className={`text-[10px] font-bold ${isToday ? 'text-primary-600' : 'text-surface-400'}`}>
                         {getDate(d)}
                       </div>
-                      <div className={`text-[9px] ${isToday ? 'text-primary-500' : 'text-dark-300'}`}>
+                      <div className={`text-[9px] ${isToday ? 'text-primary-500' : 'text-surface-300'}`}>
                         {DIAS_SEMANA_SHORT[dayOfWeek]}
                       </div>
                     </div>
@@ -149,10 +151,10 @@ export default function Calendario() {
               {/* Rows - Cabanas */}
               {filteredCabanas.map((cabana) => {
                 return (
-                  <div key={cabana.id} className="flex border-b border-dark-100 hover:bg-dark-50 group">
-                    <div className="w-44 flex-shrink-0 px-4 py-2 border-r border-dark-200 flex flex-col justify-center">
-                      <p className="text-xs font-semibold text-dark-700 truncate">{cabana.nombre}</p>
-                      <p className="text-[10px] text-dark-400">{cabana.capacidad} huésp.</p>
+                  <div key={cabana.id} className="flex border-b border-surface-100 hover:bg-surface-50 group">
+                    <div className="w-44 flex-shrink-0 px-4 py-2 border-r border-surface-200 flex flex-col justify-center">
+                      <p className="text-xs font-semibold text-surface-700 truncate">{cabana.nombre}</p>
+                      <p className="text-[10px] text-surface-400">{cabana.capacidad} huésp.</p>
                     </div>
                     {days.map((day) => {
                       const booking = getDayBooking(cabana.id, day);
@@ -161,15 +163,15 @@ export default function Calendario() {
                       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                       const isToday = day === format(now, 'yyyy-MM-dd');
 
-                      let cellClass = 'border-r border-dark-100';
+                      let cellClass = 'border-r border-surface-100';
                       let bookingBar = null;
 
                       if (booking) {
                         const { isStart, isEnd } = getBookingPosition(booking, day);
                         const colorMap: Record<string, string> = {
                           confirmada: 'bg-primary-500',
-                          pendiente: 'bg-accent-400',
-                          completada: 'bg-dark-400',
+                          pendiente: 'bg-amber-400',
+                          completada: 'bg-surface-400',
                           cancelada: 'bg-red-400',
                         };
                         const bgColor = colorMap[booking.estado] ?? 'bg-primary-500';
@@ -191,7 +193,7 @@ export default function Calendario() {
                       return (
                         <div
                           key={day}
-                          className={`w-8 flex-shrink-0 h-10 relative ${cellClass} ${isWeekend && !booking ? 'bg-dark-50' : ''} ${isToday && !booking ? 'bg-primary-50' : ''}`}
+                          className={`w-8 flex-shrink-0 h-10 relative ${cellClass} ${isWeekend && !booking ? 'bg-surface-50' : ''} ${isToday && !booking ? 'bg-primary-50' : ''}`}
                         >
                           {bookingBar}
                         </div>
@@ -223,10 +225,10 @@ export default function Calendario() {
                         <Calendar className="w-5 h-5 text-primary-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-dark-800 truncate">
+                        <p className="text-sm font-semibold text-surface-800 truncate">
                           {cabana?.nombre ?? 'N/A'}
                         </p>
-                        <p className="text-xs text-dark-400">
+                        <p className="text-xs text-surface-400">
                           {cliente ? `${cliente.nombre} ${cliente.apellido}` : 'N/A'} · {formatDisplayDate(r.fechaEntrada)} → {formatDisplayDate(r.fechaSalida)}
                         </p>
                       </div>
@@ -254,13 +256,13 @@ export default function Calendario() {
       <div className="p-6">
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="flex items-center gap-2 card px-3 py-2">
-            <button onClick={prevMonth} className="p-1 rounded hover:bg-dark-100 text-dark-500 transition-colors">
+            <button onClick={prevMonth} className="p-1 rounded hover:bg-surface-100 text-surface-500 transition-colors">
               <ChevronLeft size={16} />
             </button>
-            <span className="font-semibold text-dark-700 min-w-[140px] text-center">
+            <span className="font-semibold text-surface-700 min-w-[140px] text-center">
               {MESES[month]} {year}
             </span>
-            <button onClick={nextMonth} className="p-1 rounded hover:bg-dark-100 text-dark-500 transition-colors">
+            <button onClick={nextMonth} className="p-1 rounded hover:bg-surface-100 text-surface-500 transition-colors">
               <ChevronRight size={16} />
             </button>
           </div>
@@ -282,16 +284,16 @@ export default function Calendario() {
         </div>
 
         <div className="card overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-dark-100">
+          <div className="grid grid-cols-7 border-b border-surface-100">
             {DIAS_SEMANA_SHORT.map((d) => (
-              <div key={d} className="px-2 py-3 text-center text-xs font-semibold text-dark-500 bg-dark-50">
+              <div key={d} className="px-2 py-3 text-center text-xs font-semibold text-surface-500 bg-surface-50">
                 {d}
               </div>
             ))}
           </div>
           <div className="grid grid-cols-7">
             {allCalendarDays.map((day, idx) => {
-              if (!day) return <div key={`empty-${idx}`} className="min-h-[100px] border-r border-b border-dark-100 bg-dark-50" />;
+              if (!day) return <div key={`empty-${idx}`} className="min-h-[100px] border-r border-b border-surface-100 bg-surface-50" />;
 
               const isToday = day === format(now, 'yyyy-MM-dd');
               const dayBookings = reservas.filter((r) => {
@@ -308,10 +310,10 @@ export default function Calendario() {
               return (
                 <div
                   key={day}
-                  className={`min-h-[100px] border-r border-b border-dark-100 p-2 ${isToday ? 'bg-primary-50' : 'hover:bg-dark-50'} transition-colors`}
+                  className={`min-h-[100px] border-r border-b border-surface-100 p-2 ${isToday ? 'bg-primary-50' : 'hover:bg-surface-50'} transition-colors`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
-                    isToday ? 'bg-primary-600 text-white' : 'text-dark-600'
+                    isToday ? 'bg-primary-600 text-white' : 'text-surface-600'
                   }`}>
                     {getDate(parseISO(day))}
                   </div>
@@ -320,13 +322,13 @@ export default function Calendario() {
                       const cabana = cabanas.find((c) => c.id === b.cabanaId);
                       const colorMap: Record<string, string> = {
                         confirmada: 'bg-primary-500 text-white',
-                        pendiente: 'bg-accent-400 text-white',
-                        completada: 'bg-dark-400 text-white',
+                        pendiente: 'bg-amber-400 text-white',
+                        completada: 'bg-surface-400 text-white',
                       };
                       return (
                         <div
                           key={b.id}
-                          className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate ${colorMap[b.estado] ?? 'bg-dark-300 text-white'}`}
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate ${colorMap[b.estado] ?? 'bg-surface-300 text-white'}`}
                           title={cabana?.nombre}
                         >
                           {cabana?.nombre}
@@ -334,7 +336,7 @@ export default function Calendario() {
                       );
                     })}
                     {dayBookings.length > 3 && (
-                      <p className="text-[10px] text-dark-400 pl-1">+{dayBookings.length - 3} más</p>
+                      <p className="text-[10px] text-surface-400 pl-1">+{dayBookings.length - 3} más</p>
                     )}
                   </div>
                 </div>

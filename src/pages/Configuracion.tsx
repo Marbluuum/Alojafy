@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Building2, Bell, Database, Info, ChevronRight, TreePine } from 'lucide-react';
+import { Building2, Bell, Database, Info, ChevronRight, Home } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { cabanasApi, clientesApi, reservasApi } from '../lib/api';
 import TopBar from '../components/layout/TopBar';
-import { useStore } from '../store/useStore';
 
 export default function Configuracion() {
-  const { cabanas, clientes, reservas } = useStore();
+  const { data: cabanas = [] } = useQuery({ queryKey: ['cabanas'], queryFn: cabanasApi.list });
+  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: clientesApi.list });
+  const { data: reservas = [] } = useQuery({ queryKey: ['reservas'], queryFn: () => reservasApi.list() });
   const [activeSection, setActiveSection] = useState<string>('general');
 
   const sections = [
@@ -15,7 +18,7 @@ export default function Configuracion() {
   ];
 
   return (
-    <div>
+    <div className="flex flex-col flex-1">
       <TopBar title="Configuración" subtitle="Ajustes del sistema" />
       <div className="p-6">
         <div className="flex gap-6">
@@ -26,17 +29,17 @@ export default function Configuracion() {
                 <button
                   key={id}
                   onClick={() => setActiveSection(id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium border-b border-dark-100 last:border-0 transition-colors ${
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium border-b border-surface-100 last:border-0 transition-colors ${
                     activeSection === id
                       ? 'bg-primary-50 text-primary-600'
-                      : 'text-dark-600 hover:bg-dark-50'
+                      : 'text-surface-600 hover:bg-surface-50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <Icon size={16} />
                     {label}
                   </div>
-                  <ChevronRight size={14} className="text-dark-300" />
+                  <ChevronRight size={14} className="text-surface-300" />
                 </button>
               ))}
             </div>
@@ -81,7 +84,7 @@ export default function Configuracion() {
                     <input className="input" type="time" defaultValue="10:00" />
                   </div>
                 </div>
-                <div className="flex justify-end pt-2 border-t border-dark-100">
+                <div className="flex justify-end pt-2 border-t border-surface-100">
                   <button className="btn-primary">Guardar Cambios</button>
                 </div>
               </div>
@@ -97,14 +100,14 @@ export default function Configuracion() {
                   { label: 'Pagos pendientes', desc: 'Recordatorio de reservas con pago pendiente' },
                   { label: 'Cabañas en mantenimiento', desc: 'Alertas sobre el estado de mantenimiento' },
                 ].map(({ label, desc }) => (
-                  <div key={label} className="flex items-center justify-between py-3 border-b border-dark-100 last:border-0">
+                  <div key={label} className="flex items-center justify-between py-3 border-b border-surface-100 last:border-0">
                     <div>
-                      <p className="text-sm font-medium text-dark-700">{label}</p>
-                      <p className="text-xs text-dark-400">{desc}</p>
+                      <p className="text-sm font-medium text-surface-700">{label}</p>
+                      <p className="text-xs text-surface-400">{desc}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-dark-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600" />
+                      <div className="w-11 h-6 bg-surface-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600" />
                     </label>
                   </div>
                 ))}
@@ -123,9 +126,9 @@ export default function Configuracion() {
                     <p className="text-3xl font-bold text-blue-700">{clientes.length}</p>
                     <p className="text-sm text-blue-600 mt-1">Clientes</p>
                   </div>
-                  <div className="bg-accent-50 rounded-xl p-4 text-center border border-accent-100">
-                    <p className="text-3xl font-bold text-accent-700">{reservas.length}</p>
-                    <p className="text-sm text-accent-600 mt-1">Reservas</p>
+                  <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
+                    <p className="text-3xl font-bold text-amber-700">{reservas.length}</p>
+                    <p className="text-sm text-amber-600 mt-1">Reservas</p>
                   </div>
                 </div>
                 <div className="border border-red-200 rounded-xl p-4 bg-red-50">
@@ -142,29 +145,29 @@ export default function Configuracion() {
               <div className="card p-6">
                 <div className="text-center py-6">
                   <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <TreePine className="w-8 h-8 text-white" />
+                    <Home className="w-8 h-8 text-white" />
                   </div>
-                  <h2 className="text-xl font-bold text-dark-800 mb-1">Alojafy</h2>
-                  <p className="text-sm text-dark-400 mb-1">Versión 1.0.0</p>
-                  <p className="text-sm text-dark-500 max-w-sm mx-auto mt-4">
+                  <h2 className="text-xl font-bold text-surface-800 mb-1">Alojafy</h2>
+                  <p className="text-sm text-surface-400 mb-1">Versión 1.0.0</p>
+                  <p className="text-sm text-surface-500 max-w-sm mx-auto mt-4">
                     Sistema integral de gestión para complejos de cabañas y alquileres vacacionales.
                     Administra cabañas, clientes, reservas y genera reportes detallados.
                   </p>
-                  <div className="mt-6 grid grid-cols-2 gap-4 max-w-xs mx-auto text-sm text-dark-500">
-                    <div className="bg-dark-50 rounded-lg p-3">
-                      <p className="font-semibold text-dark-700">React 18</p>
+                  <div className="mt-6 grid grid-cols-2 gap-4 max-w-xs mx-auto text-sm text-surface-500">
+                    <div className="bg-surface-50 rounded-lg p-3">
+                      <p className="font-semibold text-surface-700">React 18</p>
                       <p className="text-xs">Framework UI</p>
                     </div>
-                    <div className="bg-dark-50 rounded-lg p-3">
-                      <p className="font-semibold text-dark-700">TypeScript</p>
+                    <div className="bg-surface-50 rounded-lg p-3">
+                      <p className="font-semibold text-surface-700">TypeScript</p>
                       <p className="text-xs">Lenguaje</p>
                     </div>
-                    <div className="bg-dark-50 rounded-lg p-3">
-                      <p className="font-semibold text-dark-700">Tailwind CSS</p>
+                    <div className="bg-surface-50 rounded-lg p-3">
+                      <p className="font-semibold text-surface-700">Tailwind CSS</p>
                       <p className="text-xs">Estilos</p>
                     </div>
-                    <div className="bg-dark-50 rounded-lg p-3">
-                      <p className="font-semibold text-dark-700">Zustand</p>
+                    <div className="bg-surface-50 rounded-lg p-3">
+                      <p className="font-semibold text-surface-700">Zustand</p>
                       <p className="text-xs">Estado global</p>
                     </div>
                   </div>
