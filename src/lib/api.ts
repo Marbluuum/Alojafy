@@ -214,3 +214,31 @@ export const configApi = {
   get:    ()                       => api.get<Config>('/config'),
   update: (data: Partial<Config>)  => api.put<Config>('/config', data),
 };
+
+// ── Super Admin ─────────────────────────────────────────────────────────────
+export interface OrgStats {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  createdAt: string;
+  userCount: number;
+  reservaCount: number;
+  cabanaCount?: number;
+  revenue: number;
+  nombreComplejo?: string | null;
+  emailContacto?: string | null;
+}
+
+export interface SuperStats {
+  totalOrgs: number;
+  totalUsers: number;
+  totalReservas: number;
+  totalRevenue: number;
+  orgs: OrgStats[];
+}
+
+export const superApi = {
+  stats:         () => api.get<SuperStats>('/super/stats'),
+  organizations: () => api.get<OrgStats[]>('/super/organizations'),
+};

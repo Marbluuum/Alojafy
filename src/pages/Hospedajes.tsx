@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, BedDouble, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, BedDouble, Calendar, Loader2, Users } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { reservasApi, cabanasApi, clientesApi } from '../lib/api';
 import type { Reserva } from '../lib/api';
@@ -168,6 +168,11 @@ export default function Hospedajes() {
                       <span className="badge-gray">{noches}n</span>
                     </div>
 
+                    <div className="flex items-center gap-1 text-xs text-surface-500 flex-shrink-0">
+                      <Users className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
+                      <span>{r.numHuespedes} huésp.</span>
+                    </div>
+
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className={sb.className}>{sb.label}</span>
                       <span className={pb.className}>{pb.label}</span>
@@ -202,8 +207,8 @@ export default function Hospedajes() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editReserva ? 'Editar Reserva' : 'Nueva Reserva'} size="lg">
         <HospedajeForm
-          initialData={editReserva as never}
-          onSubmit={handleSubmit as never}
+          initialData={editReserva}
+          onSubmit={handleSubmit}
           onCancel={() => setModalOpen(false)}
         />
       </Modal>

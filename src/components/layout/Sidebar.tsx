@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Home, Users, CalendarDays,
-  Building2, BarChart3, Settings, LogOut, Shield,
+  Building2, BarChart3, Settings, LogOut, Shield, Crown, X,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
+import OrgSwitcher from './OrgSwitcher';
 
 const NAV_MAIN = [
   { to: '/',           icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,24 +20,34 @@ const NAV_ADMIN = [
   { to: '/configuracion',  icon: Settings, label: 'Configuración' },
 ];
 
-export default function Sidebar() {
-  const { user, organization, logout } = useAuth();
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
-  return (
-    <aside className="fixed inset-y-0 left-0 w-[216px] bg-surface-900 flex flex-col z-30">
-      {/* Logo */}
+  const sidebarContent = (
+    <aside className="w-[216px] bg-surface-900 flex flex-col h-full">
+      {/* Logo / Org Switcher */}
       <div className="h-14 px-4 flex items-center gap-2.5 border-b border-white/8 flex-shrink-0">
         <div className="w-7 h-7 rounded-md bg-primary-600 flex items-center justify-center flex-shrink-0">
           <Home className="w-3.5 h-3.5 text-white" />
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-white leading-tight">Alojafy</p>
-          <p className="text-[10px] text-surface-500 leading-tight truncate">
-            {organization?.name ?? 'Mi Complejo'}
-          </p>
-        </div>
+        <OrgSwitcher />
+        {/* Close button for mobile overlay */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="ml-auto p-1 rounded text-surface-500 hover:text-white transition-colors flex-shrink-0 lg:hidden"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -49,6 +60,7 @@ export default function Sidebar() {
             key={to}
             to={to}
             end={to === '/'}
+            onClick={onClose}
             className={({ isActive }) =>
               isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
             }
@@ -67,6 +79,7 @@ export default function Sidebar() {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
                 }
@@ -85,12 +98,31 @@ export default function Sidebar() {
             </p>
             <NavLink
               to="/configuracion"
+              onClick={onClose}
               className={({ isActive }) =>
                 isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
               }
             >
               <Settings className="w-[15px] h-[15px] flex-shrink-0" />
               <span>Configuración</span>
+            </NavLink>
+          </>
+        )}
+
+        {isSuperAdmin && (
+          <>
+            <p className="px-3 pt-4 pb-2 text-[10px] font-semibold text-surface-600 uppercase tracking-widest">
+              Super Admin
+            </p>
+            <NavLink
+              to="/super"
+              onClick={onClose}
+              className={({ isActive }) =>
+                isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
+              }
+            >
+              <Crown className="w-[15px] h-[15px] flex-shrink-0" />
+              <span>Panel Global</span>
             </NavLink>
           </>
         )}
@@ -105,7 +137,7 @@ export default function Sidebar() {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-white truncate leading-tight">{user?.name ?? 'Usuario'}</p>
             <p className="text-[10px] text-surface-500 truncate leading-tight">
-              {isAdmin ? 'Administrador' : 'Usuario'}
+              {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Administrador' : 'Usuario'}
             </p>
           </div>
           <button
@@ -118,5 +150,31 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+
+  // Desktop: fixed sidebar
+  // Mobile: overlay when isOpen is true
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-[216px] z-30">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative flex-shrink-0 h-full">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -30,7 +30,7 @@ export default function Login() {
     setServerError('');
     try {
       const res = await authApi.login(data.email, data.password, data.organizationSlug || undefined);
-      login(res.token, res.user, res.organization);
+      login(res.token, res.user, res.organization, res.organizations);
       navigate('/');
     } catch (e: unknown) {
       setServerError(e instanceof Error ? e.message : 'Error al iniciar sesión');

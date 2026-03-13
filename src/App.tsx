@@ -11,6 +11,7 @@ import Configuracion from './pages/Configuracion';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Usuarios from './pages/admin/Usuarios';
+import SuperAdmin from './pages/super/SuperAdmin';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,6 +32,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!user || user.role !== 'SUPER_ADMIN') {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -60,6 +69,7 @@ function AppRoutes() {
         <Route path="reportes"     element={<Reportes />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="admin/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
+        <Route path="super" element={<RequireSuperAdmin><SuperAdmin /></RequireSuperAdmin>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

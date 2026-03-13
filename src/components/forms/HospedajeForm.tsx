@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Booking } from '../../types';
-import { useStore } from '../../store/useStore';
+import { useQuery } from '@tanstack/react-query';
+import { cabanasApi, clientesApi } from '../../lib/api';
+import type { Reserva } from '../../lib/api';
 import { calcNights, formatCurrency } from '../../utils/helpers';
 
 const schema = z.object({
@@ -10,7 +12,8 @@ const schema = z.object({
   clienteId: z.string().min(1, 'Selecciona un cliente'),
   fechaEntrada: z.string().min(1, 'Requerido'),
   fechaSalida: z.string().min(1, 'Requerido'),
-  numHuespedes: z.coerce.number().min(1),
+  numHuespedes: z.coerce.number().min(1, 'Mínimo 1 huésped'),
+  precioPorNoche: z.coerce.number().min(0, 'Precio requerido'),
   estado: z.enum(['confirmada', 'pendiente', 'cancelada', 'completada'] as const),
   estadoPago: z.enum(['pagado', 'pendiente', 'parcial', 'reembolsado'] as const),
   desayunoIncluido: z.boolean(),
@@ -23,16 +26,17 @@ const schema = z.object({
 type FormData = z.output<typeof schema>;
 
 interface Props {
-  initialData?: Booking | null;
-  onSubmit: (data: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  initialData?: Reserva | null;
+  onSubmit: (data: Partial<Reserva>) => void;
   onCancel: () => void;
 }
 
 export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props) {
-  const { cabanas, clientes } = useStore();
+  const { data: cabanas = [] } = useQuery({ queryKey: ['cabanas'], queryFn: cabanasApi.list });
+  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: clientesApi.list });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData, any, FormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData, any, FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: initialData ? {
       cabanaId: initialData.cabanaId,
@@ -40,6 +44,7 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
       fechaEntrada: initialData.fechaEntrada,
       fechaSalida: initialData.fechaSalida,
       numHuespedes: initialData.numHuespedes,
+      precioPorNoche: initialData.precioPorNoche,
       estado: initialData.estado,
       estadoPago: initialData.estadoPago,
       desayunoIncluido: initialData.desayunoIncluido,
@@ -49,23 +54,32 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
       estadoPago: 'pendiente',
       desayunoIncluido: false,
       numHuespedes: 2,
+      precioPorNoche: 0,
     },
   });
 
   const watchedCabanaId = watch('cabanaId');
   const watchedEntrada = watch('fechaEntrada');
   const watchedSalida = watch('fechaSalida');
+  const watchedPrecio = watch('precioPorNoche');
 
   const selectedCabana = cabanas.find((c) => c.id === watchedCabanaId);
+
+  // When cabin changes and it's a NEW reservation (no initialData), pre-fill the price
+  useEffect(() => {
+    if (!initialData && selectedCabana) {
+      setValue('precioPorNoche', selectedCabana.precioPorNoche);
+    }
+  }, [watchedCabanaId, selectedCabana, initialData, setValue]);
+
   const noches = watchedEntrada && watchedSalida && watchedEntrada < watchedSalida
     ? calcNights(watchedEntrada, watchedSalida)
     : 0;
-  const precioTotal = selectedCabana ? selectedCabana.precioPorNoche * noches : 0;
+  const precioTotal = (watchedPrecio ?? 0) * noches;
 
   const handleFormSubmit = (data: FormData) => {
     onSubmit({
       ...data,
-      precioPorNoche: selectedCabana?.precioPorNoche ?? 0,
       precioTotal,
     });
   };
@@ -117,6 +131,19 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
           {errors.numHuespedes && <p className="text-red-500 text-xs mt-1">{errors.numHuespedes.message}</p>}
         </div>
 
+        <div>
+          <label className="label">Precio por Noche *</label>
+          <input
+            {...register('precioPorNoche')}
+            type="number"
+            min={0}
+            step="0.01"
+            className="input"
+            placeholder="0"
+          />
+          {errors.precioPorNoche && <p className="text-red-500 text-xs mt-1">{errors.precioPorNoche.message}</p>}
+        </div>
+
         <div className="flex flex-col justify-end">
           <label className="flex items-center gap-2 cursor-pointer">
             <input {...register('desayunoIncluido')} type="checkbox" className="w-4 h-4 rounded text-primary-600" />
@@ -151,10 +178,10 @@ export default function HospedajeForm({ initialData, onSubmit, onCancel }: Props
       </div>
 
       {/* Price Preview */}
-      {noches > 0 && selectedCabana && (
+      {noches > 0 && watchedPrecio > 0 && (
         <div className="bg-primary-50 rounded-xl p-4 border border-primary-200">
           <div className="flex justify-between text-sm text-surface-600 mb-1">
-            <span>{formatCurrency(selectedCabana.precioPorNoche)} × {noches} noche{noches !== 1 ? 's' : ''}</span>
+            <span>{formatCurrency(watchedPrecio)} × {noches} noche{noches !== 1 ? 's' : ''}</span>
             <span>{formatCurrency(precioTotal)}</span>
           </div>
           <div className="flex justify-between font-bold text-surface-800">
