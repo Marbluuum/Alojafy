@@ -50,7 +50,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   const parsed = inviteSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
@@ -97,13 +97,13 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   const parsed = updateUserSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
   try {
     const existing = await prisma.user.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -124,7 +124,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     const updated = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: updateData,
       select: {
         id: true,
@@ -145,13 +145,13 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
 // DELETE /api/users/:id
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    if (req.params.id === req.user!.userId) {
+    if (req.params.id as string === req.user!.userId) {
       res.status(400).json({ error: 'No podés eliminar tu propia cuenta' });
       return;
     }
 
     const existing = await prisma.user.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -159,7 +159,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    await prisma.user.delete({ where: { id: req.params.id } });
+    await prisma.user.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Usuario eliminado' });
   } catch (err) {
     res.status(500).json({ error: 'Error al eliminar usuario' });

@@ -47,7 +47,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const cliente = await prisma.cliente.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
       include: {
         reservas: {
           include: { cabana: true },
@@ -71,7 +71,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const parsed = clienteSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
@@ -91,13 +91,13 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
 router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const parsed = clienteSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
   try {
     const existing = await prisma.cliente.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -106,7 +106,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
     }
 
     const updated = await prisma.cliente.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: parsed.data,
     });
 
@@ -120,7 +120,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
 router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const existing = await prisma.cliente.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -128,7 +128,7 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise
       return;
     }
 
-    await prisma.cliente.delete({ where: { id: req.params.id } });
+    await prisma.cliente.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Cliente eliminado' });
   } catch (err) {
     res.status(500).json({ error: 'Error al eliminar cliente' });

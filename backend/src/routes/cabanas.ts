@@ -47,7 +47,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const cabana = await prisma.cabana.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!cabana) {
@@ -65,7 +65,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const parsed = cabanaSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
@@ -92,7 +92,7 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
 router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const parsed = cabanaSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0].message });
+    res.status(400).json({ error: parsed.error.issues[0].message });
     return;
   }
 
@@ -100,7 +100,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
 
   try {
     const existing = await prisma.cabana.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -109,7 +109,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
     }
 
     const updated = await prisma.cabana.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         ...rest,
         ...(amenidades !== undefined && { amenidades: JSON.stringify(amenidades) }),
@@ -128,7 +128,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
 router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const existing = await prisma.cabana.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+      where: { id: req.params.id as string, organizationId: req.user!.organizationId },
     });
 
     if (!existing) {
@@ -136,7 +136,7 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise
       return;
     }
 
-    await prisma.cabana.delete({ where: { id: req.params.id } });
+    await prisma.cabana.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Cabaña eliminada' });
   } catch (err) {
     console.error(err);
