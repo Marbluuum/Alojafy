@@ -10,6 +10,7 @@ import reservasRoutes from './routes/reservas';
 import dashboardRoutes from './routes/dashboard';
 import usersRoutes from './routes/users';
 import configRoutes from './routes/config';
+import superRoutes from './routes/super';
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -38,6 +39,7 @@ app.use('/api/reservas', reservasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/super', superRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });

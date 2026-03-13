@@ -53,10 +53,15 @@ export interface AuthOrg {
   plan: string;
 }
 
+export interface OrgWithRole extends AuthOrg {
+  role: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: AuthUser;
   organization: AuthOrg;
+  organizations?: OrgWithRole[];
 }
 
 export const authApi = {
@@ -65,6 +70,9 @@ export const authApi = {
   register: (data: { organizationName: string; name: string; email: string; password: string }) =>
     api.post<AuthResponse>('/auth/register', data),
   me: () => api.get<{ user: AuthUser; organization: AuthOrg }>('/auth/me'),
+  organizations: () => api.get<{ organizations: OrgWithRole[] }>('/auth/organizations'),
+  switchOrg: (organizationId: string) =>
+    api.post<AuthResponse>('/auth/switch-org', { organizationId }),
 };
 
 // ── Cabañas ────────────────────────────────────────────────────────────────

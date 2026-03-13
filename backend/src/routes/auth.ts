@@ -146,6 +146,20 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       email: user.email,
     });
 
+    // Find all orgs this email belongs to
+    const allUserRecords = await prisma.user.findMany({
+      where: { email: user.email },
+      include: { organization: true },
+    });
+
+    const organizations = allUserRecords.map((u) => ({
+      id: u.organization.id,
+      name: u.organization.name,
+      slug: u.organization.slug,
+      plan: u.organization.plan,
+      role: u.role,
+    }));
+
     res.json({
       token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
@@ -155,6 +169,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         slug: user.organization.slug,
         plan: user.organization.plan,
       },
+      organizations,
     });
   } catch (err) {
     console.error(err);
@@ -183,6 +198,86 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
         slug: user.organization.slug,
         plan: user.organization.plan,
       },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// GET /api/auth/organizations — returns all orgs for the current user's email
+router.get('/organizations', authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const allUserRecords = await prisma.user.findMany({
+      where: { email: req.user!.email },
+      include: { organization: true },
+    });
+
+    const organizations = allUserRecords.map((u) => ({
+      id: u.organization.id,
+      name: u.organization.name,
+      slug: u.organization.slug,
+      plan: u.organization.plan,
+      role: u.role,
+    }));
+
+    res.json({ organizations });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/auth/switch-org — switch to a different organization
+router.post('/switch-org', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { organizationId } = req.body;
+  if (!organizationId) {
+    res.status(400).json({ error: 'organizationId requerido' });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: { email: req.user!.email, organizationId },
+      include: { organization: true },
+    });
+
+    if (!user || !user.isActive) {
+      res.status(403).json({ error: 'No tenés acceso a esa organización' });
+      return;
+    }
+
+    const token = signToken({
+      userId: user.id,
+      organizationId: user.organizationId,
+      role: user.role,
+      email: user.email,
+    });
+
+    // Also return all orgs
+    const allUserRecords = await prisma.user.findMany({
+      where: { email: user.email },
+      include: { organization: true },
+    });
+
+    const organizations = allUserRecords.map((u) => ({
+      id: u.organization.id,
+      name: u.organization.name,
+      slug: u.organization.slug,
+      plan: u.organization.plan,
+      role: u.role,
+    }));
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      organization: {
+        id: user.organization.id,
+        name: user.organization.name,
+        slug: user.organization.slug,
+        plan: user.organization.plan,
+      },
+      organizations,
     });
   } catch (err) {
     console.error(err);

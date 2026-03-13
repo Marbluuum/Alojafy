@@ -8,6 +8,39 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash('admin1234', 12);
 
+  // Create Platform organization for Super Admin
+  const platformOrg = await prisma.organization.upsert({
+    where: { slug: 'alojafy-platform' },
+    update: {},
+    create: {
+      name: 'Alojafy Platform',
+      slug: 'alojafy-platform',
+      plan: 'enterprise',
+      config: {
+        create: {
+          nombreComplejo: 'Alojafy Platform',
+          moneda: 'ARS',
+          emailContacto: 'martin@enbiconsulting.com',
+        },
+      },
+    },
+  });
+
+  // Super Admin user
+  const superAdminPassword = await bcrypt.hash('Martin2024!', 12);
+  await prisma.user.upsert({
+    where: { id: 'user-super-admin-seed' },
+    update: {},
+    create: {
+      id: 'user-super-admin-seed',
+      name: 'Martin Bufczyk',
+      email: 'martin@enbiconsulting.com',
+      password: superAdminPassword,
+      role: 'SUPER_ADMIN',
+      organizationId: platformOrg.id,
+    },
+  });
+
   // Crear organización demo
   const org = await prisma.organization.upsert({
     where: { slug: 'demo-complejo' },
@@ -113,6 +146,7 @@ async function main() {
   }
 
   console.log('✅ Seed completado!');
+  console.log('   Super Admin: martin@enbiconsulting.com / Martin2024!');
   console.log('   Admin: admin@demo.com / admin1234');
   console.log('   Staff: recepcion@demo.com / staff1234');
 }
