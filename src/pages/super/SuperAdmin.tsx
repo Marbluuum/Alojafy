@@ -15,7 +15,7 @@ const createOrgSchema = z.object({
   adminName: z.string().min(2, 'Mínimo 2 caracteres'),
   adminEmail: z.string().email('Email inválido'),
   adminPassword: z.string().min(8, 'Mínimo 8 caracteres'),
-  plan: z.enum(['free', 'pro', 'enterprise']).default('free'),
+  plan: z.enum(['free', 'pro', 'enterprise']),
 });
 type CreateOrgForm = z.infer<typeof createOrgSchema>;
 
