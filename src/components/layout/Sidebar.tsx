@@ -116,6 +116,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </p>
             <NavLink
               to="/super"
+              end
               onClick={onClose}
               className={({ isActive }) =>
                 isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
@@ -123,6 +124,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <Crown className="w-[15px] h-[15px] flex-shrink-0" />
               <span>Panel Global</span>
+            </NavLink>
+            <NavLink
+              to="/super/usuarios"
+              onClick={onClose}
+              className={({ isActive }) =>
+                isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'
+              }
+            >
+              <Users className="w-[15px] h-[15px] flex-shrink-0" />
+              <span>Usuarios</span>
             </NavLink>
           </>
         )}

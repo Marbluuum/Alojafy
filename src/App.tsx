@@ -15,6 +15,7 @@ import ResetPassword from './pages/ResetPassword';
 import ActivateAccount from './pages/ActivateAccount';
 import Usuarios from './pages/admin/Usuarios';
 import SuperAdmin from './pages/super/SuperAdmin';
+import SuperUsers from './pages/super/SuperUsers';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="admin/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
         <Route path="super" element={<RequireSuperAdmin><SuperAdmin /></RequireSuperAdmin>} />
+        <Route path="super/usuarios" element={<RequireSuperAdmin><SuperUsers /></RequireSuperAdmin>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

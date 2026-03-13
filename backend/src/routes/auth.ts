@@ -211,8 +211,22 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
 });
 
 // GET /api/auth/organizations — returns all orgs for the current user's email
+// For SUPER_ADMIN: returns ALL organizations
 router.get('/organizations', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
+    if (req.user!.role === 'SUPER_ADMIN') {
+      const allOrgs = await prisma.organization.findMany({ orderBy: { createdAt: 'asc' } });
+      const organizations = allOrgs.map((org) => ({
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        plan: org.plan,
+        role: 'SUPER_ADMIN' as const,
+      }));
+      res.json({ organizations });
+      return;
+    }
+
     const allUserRecords = await prisma.user.findMany({
       where: { email: req.user!.email },
       include: { organization: true },
@@ -234,6 +248,7 @@ router.get('/organizations', authenticate, async (req: Request, res: Response): 
 });
 
 // POST /api/auth/switch-org — switch to a different organization
+// For SUPER_ADMIN: allows switching to any org, keeping SUPER_ADMIN role
 router.post('/switch-org', authenticate, async (req: Request, res: Response): Promise<void> => {
   const { organizationId } = req.body;
   if (!organizationId) {
@@ -242,6 +257,39 @@ router.post('/switch-org', authenticate, async (req: Request, res: Response): Pr
   }
 
   try {
+    if (req.user!.role === 'SUPER_ADMIN') {
+      const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+      if (!org) {
+        res.status(404).json({ error: 'Organización no encontrada' });
+        return;
+      }
+
+      const token = signToken({
+        userId: req.user!.userId,
+        organizationId: org.id,
+        role: 'SUPER_ADMIN',
+        email: req.user!.email,
+      });
+
+      const superUser = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+      const allOrgs = await prisma.organization.findMany({ orderBy: { createdAt: 'asc' } });
+      const organizations = allOrgs.map((o) => ({
+        id: o.id,
+        name: o.name,
+        slug: o.slug,
+        plan: o.plan,
+        role: 'SUPER_ADMIN' as const,
+      }));
+
+      res.json({
+        token,
+        user: { id: req.user!.userId, name: superUser?.name ?? 'Super Admin', email: req.user!.email, role: 'SUPER_ADMIN' },
+        organization: { id: org.id, name: org.name, slug: org.slug, plan: org.plan },
+        organizations,
+      });
+      return;
+    }
+
     const user = await prisma.user.findFirst({
       where: { email: req.user!.email, organizationId },
       include: { organization: true },

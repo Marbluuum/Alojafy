@@ -176,4 +176,103 @@ router.post('/organizations', async (req: Request, res: Response): Promise<void>
   }
 });
 
+// GET /api/super/users — all users across all organizations
+router.get('/users', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        organization: { select: { id: true, name: true, slug: true, plan: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const result = users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      isActive: u.isActive,
+      createdAt: u.createdAt,
+      organization: {
+        id: u.organization.id,
+        name: u.organization.name,
+        slug: u.organization.slug,
+        plan: u.organization.plan,
+      },
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+const assignOrgSchema = z.object({
+  userId: z.string().min(1),
+  organizationId: z.string().min(1),
+  role: z.enum(['ADMIN', 'USER']).default('USER'),
+});
+
+// POST /api/super/users/assign-org — give an existing user access to another org
+router.post('/users/assign-org', async (req: Request, res: Response): Promise<void> => {
+  const parsed = assignOrgSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message });
+    return;
+  }
+  const { userId, organizationId, role } = parsed.data;
+
+  try {
+    const sourceUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!sourceUser) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const targetOrg = await prisma.organization.findUnique({ where: { id: organizationId } });
+    if (!targetOrg) {
+      res.status(404).json({ error: 'Organización no encontrada' });
+      return;
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: { email: sourceUser.email, organizationId },
+    });
+    if (existing) {
+      res.status(409).json({ error: 'El usuario ya tiene acceso a esa organización' });
+      return;
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        name: sourceUser.name,
+        email: sourceUser.email,
+        password: sourceUser.password,
+        role,
+        organizationId,
+        isActive: true,
+      },
+      include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
+    });
+
+    res.status(201).json({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      isActive: newUser.isActive,
+      organization: newUser.organization,
+    });
+  } catch (err: unknown) {
+    const e = err as { code?: string };
+    if (e.code === 'P2002') {
+      res.status(409).json({ error: 'El usuario ya tiene acceso a esa organización' });
+    } else {
+      console.error(err);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  }
+});
+
 export default router;

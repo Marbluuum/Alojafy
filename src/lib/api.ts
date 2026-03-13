@@ -253,9 +253,33 @@ export interface CreateOrgData {
   plan?: 'free' | 'pro' | 'enterprise';
 }
 
+export interface SuperUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+  };
+}
+
+export interface AssignOrgData {
+  userId: string;
+  organizationId: string;
+  role?: 'ADMIN' | 'USER';
+}
+
 export const superApi = {
   stats:              () => api.get<SuperStats>('/super/stats'),
   organizations:      () => api.get<OrgStats[]>('/super/organizations'),
   createOrganization: (data: CreateOrgData) =>
     api.post<{ organization: OrgStats; user: AppUser }>('/super/organizations', data),
+  users:              () => api.get<SuperUser[]>('/super/users'),
+  assignOrg:          (data: AssignOrgData) =>
+    api.post<SuperUser>('/super/users/assign-org', data),
 };
