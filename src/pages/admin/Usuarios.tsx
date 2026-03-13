@@ -6,7 +6,8 @@ import { z } from 'zod';
 import TopBar from '../../components/layout/TopBar';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import { usersApi, AppUser } from '../../lib/api';
+import { usersApi } from '../../lib/api';
+import type { AppUser } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 
 const createSchema = z.object({

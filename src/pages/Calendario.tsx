@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cabanasApi, reservasApi, clientesApi } from '../lib/api';
+import type { Reserva } from '../lib/api';
 import { getMonthDays, MESES, DIAS_SEMANA_SHORT, formatDisplayDate, statusReservaBadge } from '../utils/helpers';
 import { parseISO, format, isWithinInterval, getDay, startOfMonth, getDate } from 'date-fns';
 import TopBar from '../components/layout/TopBar';
@@ -34,7 +35,7 @@ export default function Calendario() {
   const getBookingsForCabana = (cabanaId: string) =>
     reservas.filter((r) => r.cabanaId === cabanaId && r.estado !== 'cancelada');
 
-  const getDayBooking = (cabanaId: string, day: string): Booking | undefined => {
+  const getDayBooking = (cabanaId: string, day: string): Reserva | undefined => {
     const bookings = getBookingsForCabana(cabanaId);
     return bookings.find((b) => {
       try {

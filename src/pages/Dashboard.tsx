@@ -3,7 +3,8 @@ import {
   Home, Users, TrendingUp, Clock,
   ArrowUpRight, ArrowDownRight, BedDouble, Loader2,
 } from 'lucide-react';
-import { dashboardApi, cabanasApi, DashboardStats } from '../lib/api';
+import { dashboardApi, cabanasApi } from '../lib/api';
+import type { DashboardStats } from '../lib/api';
 import { formatCurrency, formatDisplayDate, today, statusReservaBadge } from '../utils/helpers';
 import TopBar from '../components/layout/TopBar';
 import { useNavigate } from 'react-router-dom';

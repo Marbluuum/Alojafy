@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, BedDouble, Calendar, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { reservasApi, cabanasApi, clientesApi, Reserva } from '../lib/api';
+import { reservasApi, cabanasApi, clientesApi } from '../lib/api';
+import type { Reserva } from '../lib/api';
 import {
   formatCurrency, formatDisplayDate, statusReservaBadge,
   statusPagoBadge, calcNights

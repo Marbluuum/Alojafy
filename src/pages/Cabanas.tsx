@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Home, Users, Bath, Maximize2, MapPin, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { cabanasApi, Cabana } from '../lib/api';
+import { cabanasApi } from '../lib/api';
+import type { Cabana } from '../lib/api';
 import { formatCurrency, statusCabanaBadge } from '../utils/helpers';
 import TopBar from '../components/layout/TopBar';
 import Modal from '../components/ui/Modal';

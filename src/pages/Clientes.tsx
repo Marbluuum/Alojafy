@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Users, Mail, Phone, MapPin, Hash, BedDouble, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { clientesApi, Cliente } from '../lib/api';
+import { clientesApi } from '../lib/api';
+import type { Cliente } from '../lib/api';
 import { formatDisplayDate } from '../utils/helpers';
 import TopBar from '../components/layout/TopBar';
 import Modal from '../components/ui/Modal';
