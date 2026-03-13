@@ -1,0 +1,7 @@
+mobile/
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+**/*.db
+**/*.db-journal
+node_modules
+backend/node_modules
