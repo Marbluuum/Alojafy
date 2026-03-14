@@ -52,6 +52,7 @@ export interface AuthOrg {
   name: string;
   slug: string;
   plan: string;
+  isActive?: boolean;
 }
 
 export interface OrgWithRole extends AuthOrg {
@@ -290,4 +291,6 @@ export const superApi = {
     api.post<SuperUser>('/super/users/assign-org', data),
   toggleUserActive:   (id: string) =>
     api.patch<SuperUser>(`/super/users/${id}/toggle-active`, {}),
+  changeUserRole:     (id: string, role: string) =>
+    api.patch<SuperUser>(`/super/users/${id}/role`, { role }),
 };

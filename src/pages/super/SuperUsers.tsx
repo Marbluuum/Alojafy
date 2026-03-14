@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, Shield, User, Loader2, Plus, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Building2, Users, Loader2, Plus, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 import TopBar from '../../components/layout/TopBar';
 import Modal from '../../components/ui/Modal';
 import { superApi } from '../../lib/api';
@@ -21,6 +21,7 @@ export default function SuperUsers() {
   const [assignError, setAssignError] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
   const [toggleLoadingMap, setToggleLoadingMap] = useState<Record<string, boolean>>({});
+  const [roleLoadingMap, setRoleLoadingMap] = useState<Record<string, boolean>>({});
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['super-users'],
@@ -46,6 +47,16 @@ export default function SuperUsers() {
       queryClient.invalidateQueries({ queryKey: ['super-stats'] });
     } finally {
       setToggleLoadingMap((m) => ({ ...m, [userId]: false }));
+    }
+  }
+
+  async function handleRoleChange(userId: string, role: string) {
+    setRoleLoadingMap((m) => ({ ...m, [userId]: true }));
+    try {
+      await superApi.changeUserRole(userId, role);
+      queryClient.invalidateQueries({ queryKey: ['super-users'] });
+    } finally {
+      setRoleLoadingMap((m) => ({ ...m, [userId]: false }));
     }
   }
 
@@ -171,17 +182,23 @@ export default function SuperUsers() {
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                          u.role === 'SUPER_ADMIN' ? 'bg-amber-100 text-amber-700' :
-                          u.role === 'ADMIN' ? 'bg-primary-100 text-primary-700' :
-                          'bg-surface-100 text-surface-500'
-                        }`}>
-                          {u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
-                            ? <Shield className="w-3 h-3" />
-                            : <User className="w-3 h-3" />
-                          }
-                          {u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'ADMIN' ? 'Admin' : 'Usuario'}
-                        </span>
+                        {roleLoadingMap[u.id] ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
+                        ) : (
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            className={`text-xs font-medium border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer ${
+                              u.role === 'SUPER_ADMIN' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                              u.role === 'ADMIN' ? 'bg-primary-50 border-primary-200 text-primary-700' :
+                              'bg-surface-50 border-surface-200 text-surface-600'
+                            }`}
+                          >
+                            <option value="USER">Usuario</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                          </select>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         <button

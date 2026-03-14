@@ -238,6 +238,32 @@ router.patch('/users/:id/toggle-active', async (req: Request, res: Response): Pr
   }
 });
 
+// PATCH /api/super/users/:id/role — change a user's role (including SUPER_ADMIN)
+router.patch('/users/:id/role', async (req: Request, res: Response): Promise<void> => {
+  const { role } = req.body;
+  if (!['USER', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+    res.status(400).json({ error: 'Rol inválido' });
+    return;
+  }
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { role },
+      include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
+    });
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      organization: user.organization,
+    });
+  } catch {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/super/users — all users across all organizations
 router.get('/users', async (_req: Request, res: Response): Promise<void> => {
   try {

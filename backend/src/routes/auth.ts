@@ -207,6 +207,7 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
         name: organization.name,
         slug: organization.slug,
         plan: organization.plan,
+        isActive: organization.isActive,
       },
     });
   } catch (err) {
