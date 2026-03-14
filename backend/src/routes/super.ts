@@ -176,6 +176,68 @@ router.post('/organizations', async (req: Request, res: Response): Promise<void>
   }
 });
 
+// PATCH /api/super/organizations/:id/plan — change organization plan
+router.patch('/organizations/:id/plan', async (req: Request, res: Response): Promise<void> => {
+  const { plan } = req.body;
+  if (!['free', 'pro', 'enterprise'].includes(plan)) {
+    res.status(400).json({ error: 'Plan inválido' });
+    return;
+  }
+  try {
+    const org = await prisma.organization.update({
+      where: { id: req.params.id },
+      data: { plan },
+    });
+    res.json({ id: org.id, name: org.name, plan: org.plan, isActive: org.isActive });
+  } catch {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PATCH /api/super/organizations/:id/toggle-active — activate/deactivate organization
+router.patch('/organizations/:id/toggle-active', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const current = await prisma.organization.findUnique({ where: { id: req.params.id } });
+    if (!current) {
+      res.status(404).json({ error: 'Organización no encontrada' });
+      return;
+    }
+    const org = await prisma.organization.update({
+      where: { id: req.params.id },
+      data: { isActive: !current.isActive },
+    });
+    res.json({ id: org.id, name: org.name, plan: org.plan, isActive: org.isActive });
+  } catch {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PATCH /api/super/users/:id/toggle-active — activate/deactivate a user
+router.patch('/users/:id/toggle-active', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const current = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!current) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { isActive: !current.isActive },
+      include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
+    });
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      organization: user.organization,
+    });
+  } catch {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/super/users — all users across all organizations
 router.get('/users', async (_req: Request, res: Response): Promise<void> => {
   try {

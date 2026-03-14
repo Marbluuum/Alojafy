@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, Shield, User, Loader2, Plus, Search } from 'lucide-react';
+import { Building2, Users, Shield, User, Loader2, Plus, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 import TopBar from '../../components/layout/TopBar';
 import Modal from '../../components/ui/Modal';
 import { superApi } from '../../lib/api';
@@ -20,6 +20,7 @@ export default function SuperUsers() {
   const [assignRole, setAssignRole] = useState<'ADMIN' | 'USER'>('USER');
   const [assignError, setAssignError] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
+  const [toggleLoadingMap, setToggleLoadingMap] = useState<Record<string, boolean>>({});
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['super-users'],
@@ -36,6 +37,17 @@ export default function SuperUsers() {
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     u.organization.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  async function handleToggleUser(userId: string) {
+    setToggleLoadingMap((m) => ({ ...m, [userId]: true }));
+    try {
+      await superApi.toggleUserActive(userId);
+      queryClient.invalidateQueries({ queryKey: ['super-users'] });
+      queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+    } finally {
+      setToggleLoadingMap((m) => ({ ...m, [userId]: false }));
+    }
+  }
 
   async function handleAssign() {
     if (!assignUser || !assignOrgId) return;
@@ -127,7 +139,7 @@ export default function SuperUsers() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Usuario</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Organización</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Rol</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Estado</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Estado</th>
                     <th className="text-right px-5 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Acciones</th>
                   </tr>
                 </thead>
@@ -171,10 +183,21 @@ export default function SuperUsers() {
                           {u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'ADMIN' ? 'Admin' : 'Usuario'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs font-medium ${u.isActive ? 'text-emerald-600' : 'text-surface-400'}`}>
-                          {u.isActive ? '● Activo' : '○ Inactivo'}
-                        </span>
+                      <td className="px-4 py-3.5 text-center">
+                        <button
+                          onClick={() => handleToggleUser(u.id)}
+                          disabled={!!toggleLoadingMap[u.id]}
+                          className="flex items-center gap-1.5 text-xs mx-auto disabled:opacity-40"
+                          title={u.isActive ? 'Desactivar usuario' : 'Activar usuario'}
+                        >
+                          {toggleLoadingMap[u.id] ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
+                          ) : u.isActive ? (
+                            <><ToggleRight className="w-5 h-5 text-emerald-600" /><span className="text-emerald-700">Activo</span></>
+                          ) : (
+                            <><ToggleLeft className="w-5 h-5 text-surface-400" /><span className="text-surface-500">Inactivo</span></>
+                          )}
+                        </button>
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button

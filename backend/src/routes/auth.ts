@@ -138,6 +138,11 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (!user.organization.isActive) {
+      res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
+      return;
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       res.status(401).json({ error: 'Credenciales incorrectas' });
@@ -185,12 +190,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 // GET /api/auth/me
 router.get('/me', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.userId },
-      include: { organization: true },
-    });
+    const [user, organization] = await Promise.all([
+      prisma.user.findUnique({ where: { id: req.user!.userId } }),
+      prisma.organization.findUnique({ where: { id: req.user!.organizationId } }),
+    ]);
 
-    if (!user) {
+    if (!user || !organization) {
       res.status(404).json({ error: 'Usuario no encontrado' });
       return;
     }
@@ -198,10 +203,10 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
     res.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       organization: {
-        id: user.organization.id,
-        name: user.organization.name,
-        slug: user.organization.slug,
-        plan: user.organization.plan,
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        plan: organization.plan,
       },
     });
   } catch (err) {
@@ -297,6 +302,11 @@ router.post('/switch-org', authenticate, async (req: Request, res: Response): Pr
 
     if (!user || !user.isActive) {
       res.status(403).json({ error: 'No tenés acceso a esa organización' });
+      return;
+    }
+
+    if (!user.organization.isActive) {
+      res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
       return;
     }
 

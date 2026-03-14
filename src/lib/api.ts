@@ -35,6 +35,7 @@ export const api = {
   get:    <T>(path: string) => request<T>('GET', path),
   post:   <T>(path: string, body: unknown) => request<T>('POST', path, body),
   put:    <T>(path: string, body: unknown) => request<T>('PUT', path, body),
+  patch:  <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
 };
 
@@ -228,6 +229,7 @@ export interface OrgStats {
   name: string;
   slug: string;
   plan: string;
+  isActive: boolean;
   createdAt: string;
   userCount: number;
   reservaCount: number;
@@ -279,7 +281,13 @@ export const superApi = {
   organizations:      () => api.get<OrgStats[]>('/super/organizations'),
   createOrganization: (data: CreateOrgData) =>
     api.post<{ organization: OrgStats; user: AppUser }>('/super/organizations', data),
+  updateOrgPlan:      (id: string, plan: string) =>
+    api.patch<Pick<OrgStats, 'id' | 'name' | 'plan' | 'isActive'>>(`/super/organizations/${id}/plan`, { plan }),
+  toggleOrgActive:    (id: string) =>
+    api.patch<Pick<OrgStats, 'id' | 'name' | 'plan' | 'isActive'>>(`/super/organizations/${id}/toggle-active`, {}),
   users:              () => api.get<SuperUser[]>('/super/users'),
   assignOrg:          (data: AssignOrgData) =>
     api.post<SuperUser>('/super/users/assign-org', data),
+  toggleUserActive:   (id: string) =>
+    api.patch<SuperUser>(`/super/users/${id}/toggle-active`, {}),
 };

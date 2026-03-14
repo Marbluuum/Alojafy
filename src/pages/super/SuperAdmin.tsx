@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, CalendarDays, TrendingUp, Crown, CreditCard, Loader2, Plus } from 'lucide-react';
+import {
+  Building2, Users, CalendarDays, TrendingUp, Crown,
+  CreditCard, Loader2, Plus, ToggleLeft, ToggleRight,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,6 +47,11 @@ export default function SuperAdmin() {
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
   const [createOrgError, setCreateOrgError] = useState('');
 
+  // Inline plan change loading state: orgId → loading
+  const [planLoading, setPlanLoading] = useState<Record<string, boolean>>({});
+  // Inline org toggle loading state
+  const [toggleLoading, setToggleLoading] = useState<Record<string, boolean>>({});
+
   const createOrgForm = useForm<CreateOrgForm>({
     resolver: zodResolver(createOrgSchema),
     defaultValues: { plan: 'free' },
@@ -56,8 +64,31 @@ export default function SuperAdmin() {
       setCreateOrgOpen(false);
       createOrgForm.reset({ plan: 'free' });
       queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+      // Also refresh org switcher
+      queryClient.invalidateQueries({ queryKey: ['auth-organizations'] });
     } catch (e: unknown) {
       setCreateOrgError(e instanceof Error ? e.message : 'Error al crear la organización');
+    }
+  }
+
+  async function handlePlanChange(orgId: string, plan: string) {
+    setPlanLoading((p) => ({ ...p, [orgId]: true }));
+    try {
+      await superApi.updateOrgPlan(orgId, plan);
+      queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+    } finally {
+      setPlanLoading((p) => ({ ...p, [orgId]: false }));
+    }
+  }
+
+  async function handleToggleOrg(orgId: string) {
+    setToggleLoading((p) => ({ ...p, [orgId]: true }));
+    try {
+      await superApi.toggleOrgActive(orgId);
+      queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['auth-organizations'] });
+    } finally {
+      setToggleLoading((p) => ({ ...p, [orgId]: false }));
     }
   }
 
@@ -89,7 +120,6 @@ export default function SuperAdmin() {
       icon: TrendingUp,
       color: 'text-rose-600',
       bg: 'bg-rose-50',
-      isRevenue: true,
     },
   ];
 
@@ -157,12 +187,13 @@ export default function SuperAdmin() {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Plan</th>
                       <th className="text-right px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Usuarios</th>
                       <th className="text-right px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Reservas</th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Ingresos</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Ingresos</th>
+                      <th className="text-center px-5 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-50">
                     {stats?.orgs.map((org: OrgStats) => (
-                      <tr key={org.id} className="hover:bg-surface-50 transition-colors">
+                      <tr key={org.id} className={`hover:bg-surface-50 transition-colors ${!org.isActive ? 'opacity-60' : ''}`}>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded bg-primary-100 flex items-center justify-center flex-shrink-0">
@@ -183,8 +214,24 @@ export default function SuperAdmin() {
                         <td className="px-4 py-3.5 text-right">
                           <span className="font-medium text-surface-700">{org.reservaCount}</span>
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-4 py-3.5 text-right">
                           <span className="font-semibold text-surface-900">{formatCurrency(org.revenue)}</span>
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <button
+                            onClick={() => handleToggleOrg(org.id)}
+                            disabled={!!toggleLoading[org.id]}
+                            className="flex items-center gap-1.5 text-xs mx-auto disabled:opacity-40"
+                            title={org.isActive ? 'Desactivar' : 'Activar'}
+                          >
+                            {toggleLoading[org.id] ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
+                            ) : org.isActive ? (
+                              <><ToggleRight className="w-5 h-5 text-emerald-600" /><span className="text-emerald-700">Activo</span></>
+                            ) : (
+                              <><ToggleLeft className="w-5 h-5 text-surface-400" /><span className="text-surface-500">Inactivo</span></>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -199,12 +246,12 @@ export default function SuperAdmin() {
                 <CreditCard className="w-4 h-4 text-surface-400" />
                 <div>
                   <h2 className="text-sm font-semibold text-surface-900">Facturación y Planes</h2>
-                  <p className="text-xs text-surface-400 mt-0.5">Estado de planes por organización</p>
+                  <p className="text-xs text-surface-400 mt-0.5">Cambiá el plan de cada organización</p>
                 </div>
               </div>
               <div className="divide-y divide-surface-50">
                 {stats?.orgs.map((org: OrgStats) => (
-                  <div key={org.id} className="px-5 py-4 flex items-center justify-between gap-4">
+                  <div key={org.id} className={`px-5 py-4 flex items-center justify-between gap-4 ${!org.isActive ? 'opacity-60' : ''}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center flex-shrink-0">
                         <Building2 className="w-4 h-4 text-surface-500" />
@@ -217,15 +264,45 @@ export default function SuperAdmin() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <PlanBadge plan={org.plan} />
+                      {/* Inline plan selector */}
+                      <div className="relative">
+                        {planLoading[org.id] ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
+                        ) : (
+                          <select
+                            value={org.plan}
+                            onChange={(e) => handlePlanChange(org.id, e.target.value)}
+                            disabled={!org.isActive}
+                            className="text-[11px] font-semibold uppercase border border-surface-200 rounded px-2 py-1 bg-white text-surface-700 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <option value="free">Free</option>
+                            <option value="pro">Pro</option>
+                            <option value="enterprise">Enterprise</option>
+                          </select>
+                        )}
+                      </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-surface-700">{formatCurrency(org.revenue)}</p>
                         <p className="text-[10px] text-surface-400">ingresos</p>
                       </div>
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                        Activo
-                      </span>
+                      {/* Toggle org active */}
+                      <button
+                        onClick={() => handleToggleOrg(org.id)}
+                        disabled={!!toggleLoading[org.id]}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors disabled:opacity-40 ${
+                          org.isActive
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-red-50 hover:text-red-600'
+                            : 'bg-surface-100 text-surface-500 hover:bg-emerald-50 hover:text-emerald-700'
+                        }`}
+                        title={org.isActive ? 'Click para desactivar' : 'Click para activar'}
+                      >
+                        {toggleLoading[org.id] ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block ${org.isActive ? 'bg-emerald-500' : 'bg-surface-400'}`} />
+                        )}
+                        {org.isActive ? 'Activo' : 'Inactivo'}
+                      </button>
                     </div>
                   </div>
                 ))}
