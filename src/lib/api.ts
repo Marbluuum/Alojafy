@@ -198,7 +198,7 @@ export interface AppUser {
 
 export const usersApi = {
   list:   ()                       => api.get<AppUser[]>('/users'),
-  create: (data: { name: string; email: string; password: string; role: string }) =>
+  create: (data: { name: string; email: string; role: string }) =>
     api.post<AppUser>('/users', data),
   update: (id: string, data: Partial<AppUser & { password: string }>) =>
     api.put<AppUser>(`/users/${id}`, data),

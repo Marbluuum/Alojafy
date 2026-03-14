@@ -13,7 +13,6 @@ import { useAuth } from '../../lib/auth';
 const createSchema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
   role: z.enum(['ADMIN', 'USER']),
 });
 type CreateForm = z.infer<typeof createSchema>;
@@ -114,7 +113,7 @@ export default function Usuarios() {
         subtitle="Gestioná los miembros de tu equipo y sus permisos"
         actions={
           <button onClick={() => { createForm.reset({ role: 'USER' }); setCreateOpen(true); }} className="btn-primary btn-sm">
-            <Plus className="w-3.5 h-3.5" />Nuevo usuario
+            <Plus className="w-3.5 h-3.5" />Invitar usuario
           </button>
         }
       />
@@ -177,7 +176,7 @@ export default function Usuarios() {
                           {u.isActive ? (
                             <><ToggleRight className="w-5 h-5 text-emerald-600" /><span className="text-emerald-700 text-xs">Activo</span></>
                           ) : (
-                            <><ToggleLeft className="w-5 h-5 text-surface-400" /><span className="text-surface-500 text-xs">Inactivo</span></>
+                            <><ToggleLeft className="w-5 h-5 text-amber-400" /><span className="text-amber-600 text-xs">Pendiente activación</span></>
                           )}
                         </button>
                       </td>
@@ -220,8 +219,12 @@ export default function Usuarios() {
       </div>
 
       {/* Modal: crear usuario */}
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo usuario" size="sm">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Invitar usuario" size="sm">
         <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
+          <div className="bg-primary-50 border border-primary-100 rounded-lg px-3.5 py-3 text-xs text-primary-700 flex items-start gap-2">
+            <Mail className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>Se enviará un email al usuario para que cree su contraseña. El enlace expira en 24 horas.</span>
+          </div>
           <div>
             <label className="label">Nombre completo</label>
             <input {...createForm.register('name')} className="input" placeholder="Juan Pérez" />
@@ -233,11 +236,6 @@ export default function Usuarios() {
             {createForm.formState.errors.email && <p className="form-error">{createForm.formState.errors.email.message}</p>}
           </div>
           <div>
-            <label className="label">Contraseña</label>
-            <input {...createForm.register('password')} type="password" className="input" placeholder="Mínimo 8 caracteres" />
-            {createForm.formState.errors.password && <p className="form-error">{createForm.formState.errors.password.message}</p>}
-          </div>
-          <div>
             <label className="label">Rol</label>
             <select {...createForm.register('role')} className="input">
               <option value="USER">Usuario — puede ver y crear reservas</option>
@@ -247,7 +245,7 @@ export default function Usuarios() {
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setCreateOpen(false)} className="btn-secondary btn-sm">Cancelar</button>
             <button type="submit" disabled={createForm.formState.isSubmitting} className="btn-primary btn-sm">
-              {createForm.formState.isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Crear usuario'}
+              {createForm.formState.isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Mail className="w-3.5 h-3.5" />Enviar invitación</>}
             </button>
           </div>
         </form>

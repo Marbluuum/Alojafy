@@ -17,7 +17,6 @@ router.use(authenticate, requireAdmin);
 const inviteSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(8),
   role: z.enum(['ADMIN', 'USER']).default('USER'),
 });
 
@@ -59,7 +58,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const { name, email, password, role } = parsed.data;
+  const { name, email, role } = parsed.data;
 
   try {
     const existing = await prisma.user.findFirst({
@@ -71,14 +70,17 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const org = await prisma.organization.findUnique({
+      where: { id: req.user!.organizationId },
+    });
 
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        password: hashedPassword,
+        password: null,
         role,
+        isActive: false,
         organizationId: req.user!.organizationId,
       },
       select: {
@@ -90,6 +92,15 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
         createdAt: true,
       },
     });
+
+    // Enviar email de activación automáticamente (expira en 24h)
+    try {
+      const token = jwt.sign({ id: user.id, purpose: 'activate' }, JWT_SECRET, { expiresIn: '24h' });
+      const activationLink = `${FRONTEND_URL}/activate?token=${token}`;
+      await sendActivationEmail(user.email, user.name, activationLink, org?.name ?? 'tu organización');
+    } catch (emailErr) {
+      console.error('Error al enviar email de activación:', emailErr);
+    }
 
     res.status(201).json(user);
   } catch (err) {
@@ -160,7 +171,7 @@ router.post('/:id/send-activation', async (req: Request, res: Response): Promise
       return;
     }
 
-    const token = jwt.sign({ id: user.id, purpose: 'activate' }, JWT_SECRET, { expiresIn: '72h' });
+    const token = jwt.sign({ id: user.id, purpose: 'activate' }, JWT_SECRET, { expiresIn: '24h' });
     const activationLink = `${FRONTEND_URL}/activate?token=${token}`;
     await sendActivationEmail(user.email, user.name, activationLink, user.organization.name);
 
