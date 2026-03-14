@@ -138,11 +138,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (user.organization.isActive === false) {
-      res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
-      return;
-    }
-
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       res.status(401).json({ error: 'Credenciales incorrectas' });
@@ -303,11 +298,6 @@ router.post('/switch-org', authenticate, async (req: Request, res: Response): Pr
 
     if (!user || !user.isActive) {
       res.status(403).json({ error: 'No tenés acceso a esa organización' });
-      return;
-    }
-
-    if (user.organization.isActive === false) {
-      res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
       return;
     }
 
