@@ -138,7 +138,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (!user.organization.isActive) {
+    if (user.organization.isActive === false) {
       res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
       return;
     }
@@ -306,7 +306,7 @@ router.post('/switch-org', authenticate, async (req: Request, res: Response): Pr
       return;
     }
 
-    if (!user.organization.isActive) {
+    if (user.organization.isActive === false) {
       res.status(403).json({ error: 'Esta cuenta está desactivada. Contactá al administrador.' });
       return;
     }
