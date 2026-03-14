@@ -282,6 +282,8 @@ export const superApi = {
   organizations:      () => api.get<OrgStats[]>('/super/organizations'),
   createOrganization: (data: CreateOrgData) =>
     api.post<{ organization: OrgStats; user: AppUser }>('/super/organizations', data),
+  activateAllOrgs:    () =>
+    api.post<{ message: string }>('/super/organizations/activate-all', {}),
   updateOrgPlan:      (id: string, plan: string) =>
     api.patch<Pick<OrgStats, 'id' | 'name' | 'plan' | 'isActive'>>(`/super/organizations/${id}/plan`, { plan }),
   toggleOrgActive:    (id: string) =>

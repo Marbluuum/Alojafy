@@ -178,6 +178,16 @@ router.post('/organizations', async (req: Request, res: Response): Promise<void>
   }
 });
 
+// POST /api/super/organizations/activate-all — set ALL organizations to isActive = true
+router.post('/organizations/activate-all', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    await prisma.organization.updateMany({ data: { isActive: true } });
+    res.json({ message: 'Todas las organizaciones fueron activadas' });
+  } catch {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // PATCH /api/super/organizations/:id/plan — change organization plan
 router.patch('/organizations/:id/plan', async (req: Request, res: Response): Promise<void> => {
   const { plan } = req.body;

@@ -81,6 +81,14 @@ export default function SuperAdmin() {
     }
   }
 
+  async function handleActivateAll() {
+    try {
+      await superApi.activateAllOrgs();
+      queryClient.invalidateQueries({ queryKey: ['super-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['auth-organizations'] });
+    } catch { /* ignore */ }
+  }
+
   async function handleToggleOrg(orgId: string) {
     setToggleLoading((p) => ({ ...p, [orgId]: true }));
     try {
@@ -129,12 +137,21 @@ export default function SuperAdmin() {
         title="Panel Super Admin"
         subtitle="Vista global de la plataforma Alojafy"
         actions={
-          <button
-            onClick={() => { createOrgForm.reset({ plan: 'free' }); setCreateOrgError(''); setCreateOrgOpen(true); }}
-            className="btn-primary btn-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />Nueva Organización
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleActivateAll}
+              className="btn-secondary btn-sm"
+              title="Activar todas las organizaciones"
+            >
+              Activar todas
+            </button>
+            <button
+              onClick={() => { createOrgForm.reset({ plan: 'free' }); setCreateOrgError(''); setCreateOrgOpen(true); }}
+              className="btn-primary btn-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />Nueva Organización
+            </button>
+          </div>
         }
       />
 
@@ -193,7 +210,7 @@ export default function SuperAdmin() {
                   </thead>
                   <tbody className="divide-y divide-surface-50">
                     {stats?.orgs.map((org: OrgStats) => (
-                      <tr key={org.id} className={`hover:bg-surface-50 transition-colors ${!org.isActive ? 'opacity-60' : ''}`}>
+                      <tr key={org.id} className={`hover:bg-surface-50 transition-colors ${org.isActive === false ? 'opacity-60' : ''}`}>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded bg-primary-100 flex items-center justify-center flex-shrink-0">
@@ -222,11 +239,11 @@ export default function SuperAdmin() {
                             onClick={() => handleToggleOrg(org.id)}
                             disabled={!!toggleLoading[org.id]}
                             className="flex items-center gap-1.5 text-xs mx-auto disabled:opacity-40"
-                            title={org.isActive ? 'Desactivar' : 'Activar'}
+                            title={org.isActive !== false ? 'Desactivar' : 'Activar'}
                           >
                             {toggleLoading[org.id] ? (
                               <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
-                            ) : org.isActive ? (
+                            ) : org.isActive !== false ? (
                               <><ToggleRight className="w-5 h-5 text-emerald-600" /><span className="text-emerald-700">Activo</span></>
                             ) : (
                               <><ToggleLeft className="w-5 h-5 text-surface-400" /><span className="text-surface-500">Inactivo</span></>
@@ -251,7 +268,7 @@ export default function SuperAdmin() {
               </div>
               <div className="divide-y divide-surface-50">
                 {stats?.orgs.map((org: OrgStats) => (
-                  <div key={org.id} className={`px-5 py-4 flex items-center justify-between gap-4 ${!org.isActive ? 'opacity-60' : ''}`}>
+                  <div key={org.id} className={`px-5 py-4 flex items-center justify-between gap-4 ${org.isActive === false ? 'opacity-60' : ''}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center flex-shrink-0">
                         <Building2 className="w-4 h-4 text-surface-500" />
@@ -272,7 +289,7 @@ export default function SuperAdmin() {
                           <select
                             value={org.plan}
                             onChange={(e) => handlePlanChange(org.id, e.target.value)}
-                            disabled={!org.isActive}
+                            disabled={org.isActive === false}
                             className="text-[11px] font-semibold uppercase border border-surface-200 rounded px-2 py-1 bg-white text-surface-700 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer disabled:cursor-not-allowed"
                           >
                             <option value="free">Free</option>
@@ -290,18 +307,18 @@ export default function SuperAdmin() {
                         onClick={() => handleToggleOrg(org.id)}
                         disabled={!!toggleLoading[org.id]}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors disabled:opacity-40 ${
-                          org.isActive
+                          org.isActive !== false
                             ? 'bg-emerald-50 text-emerald-700 hover:bg-red-50 hover:text-red-600'
                             : 'bg-surface-100 text-surface-500 hover:bg-emerald-50 hover:text-emerald-700'
                         }`}
-                        title={org.isActive ? 'Click para desactivar' : 'Click para activar'}
+                        title={org.isActive !== false ? 'Click para desactivar' : 'Click para activar'}
                       >
                         {toggleLoading[org.id] ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
                         ) : (
-                          <span className={`w-1.5 h-1.5 rounded-full inline-block ${org.isActive ? 'bg-emerald-500' : 'bg-surface-400'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block ${org.isActive !== false ? 'bg-emerald-500' : 'bg-surface-400'}`} />
                         )}
-                        {org.isActive ? 'Activo' : 'Inactivo'}
+                        {org.isActive !== false ? 'Activo' : 'Inactivo'}
                       </button>
                     </div>
                   </div>
