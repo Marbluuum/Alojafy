@@ -43,6 +43,45 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// GET /api/clientes/export
+router.get('/export', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const clientes = await prisma.cliente.findMany({
+      where: { organizationId: req.user!.organizationId },
+      include: { _count: { select: { reservas: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = 'Nombre,Apellido,Email,Teléfono,DNI,País,Ciudad,Dirección,Fecha de Nacimiento,Reservas,Notas,Registrado';
+    const rows = clientes.map(c => {
+      const esc = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""')}"`;
+      return [
+        esc(c.nombre),
+        esc(c.apellido),
+        esc(c.email),
+        esc(c.telefono),
+        esc(c.dni),
+        esc(c.pais),
+        esc(c.ciudad),
+        esc(c.direccion),
+        esc(c.fechaNacimiento),
+        c._count.reservas,
+        esc(c.notas),
+        esc(c.createdAt.toISOString().split('T')[0]),
+      ].join(',');
+    });
+
+    const csv = [header, ...rows].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="clientes.csv"');
+    res.send('\uFEFF' + csv); // BOM para compatibilidad con Excel
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al exportar clientes' });
+  }
+});
+
 // GET /api/clientes/:id
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {

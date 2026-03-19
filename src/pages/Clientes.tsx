@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Users, Mail, Phone, MapPin, Hash, BedDouble, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Mail, Phone, MapPin, Hash, BedDouble, Loader2, Download } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clientesApi } from '../lib/api';
 import type { Cliente } from '../lib/api';
@@ -31,6 +31,12 @@ export default function Clientes() {
   const handleOpenAdd = () => { setEditCliente(null); setModalOpen(true); };
   const handleOpenEdit = (c: Cliente) => { setEditCliente(c); setModalOpen(true); };
 
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try { await clientesApi.exportCsv(); } finally { setExporting(false); }
+  };
+
   const handleSubmit = async (data: Omit<Cliente, 'id' | 'createdAt' | 'organizationId' | 'cantidadReservas'>) => {
     if (editCliente) {
       await clientesApi.update(editCliente.id, data);
@@ -54,9 +60,15 @@ export default function Clientes() {
         title="Clientes"
         subtitle={`${clientes.length} clientes registrados`}
         actions={
-          <button onClick={handleOpenAdd} className="btn-primary btn-sm">
-            <Plus className="w-3.5 h-3.5" />Nuevo cliente
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExport} disabled={exporting} className="btn-secondary btn-sm">
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              Exportar CSV
+            </button>
+            <button onClick={handleOpenAdd} className="btn-primary btn-sm">
+              <Plus className="w-3.5 h-3.5" />Nuevo cliente
+            </button>
+          </div>
         }
       />
 

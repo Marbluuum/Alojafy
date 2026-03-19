@@ -134,6 +134,21 @@ export const clientesApi = {
   create: (data: Partial<Cliente>)  => api.post<Cliente>('/clientes', data),
   update: (id: string, data: Partial<Cliente>) => api.put<Cliente>(`/clientes/${id}`, data),
   delete: (id: string)              => api.delete<{ message: string }>(`/clientes/${id}`),
+  exportCsv: async () => {
+    const token = localStorage.getItem('alojafy_token');
+    const base = import.meta.env.VITE_API_URL || '/api';
+    const res = await fetch(`${base}/clientes/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Error al exportar');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'clientes.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 // ── Reservas ───────────────────────────────────────────────────────────────
